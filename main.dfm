@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 337
-  Top = 80
+  Left = 153
+  Top = 28
   Width = 1011
-  Height = 751
+  Height = 579
   Caption = 'VideoForm'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -22,18 +22,25 @@ object VideoForm: TVideoForm
     Height = 13
     Caption = #39033#30446#21517#31216#65306
   end
+  object Image1: TImage
+    Left = 56
+    Top = 432
+    Width = 281
+    Height = 153
+  end
   object scrlbx1: TScrollBox
     Left = 0
     Top = 0
     Width = 585
     Height = 425
-    VertScrollBar.Position = 1101
+    HorzScrollBar.Position = 72
+    VertScrollBar.Position = 1196
     TabOrder = 0
     object VideoWindow: TVideoWindow
-      Left = 0
-      Top = -1101
-      Width = 1944
-      Height = 2592
+      Left = -72
+      Top = -1196
+      Width = 1200
+      Height = 1600
       FilterGraph = FilterGraph
       VMROptions.Mode = vmrWindowed
       Color = clBlack
@@ -65,13 +72,15 @@ object VideoForm: TVideoForm
     TabOrder = 3
     OnClick = btn_saveClick
   end
-  object lv1: TListView
-    Left = 760
-    Top = 296
-    Width = 217
-    Height = 265
+  object ListView1: TListView
+    Left = 720
+    Top = 272
+    Width = 305
+    Height = 409
+    Checkboxes = True
     Columns = <>
-    LargeImages = ImageList
+    LargeImages = ImageList1
+    SmallImages = ImageList1
     TabOrder = 4
   end
   object FilterGraph: TFilterGraph
@@ -100,8 +109,10 @@ object VideoForm: TVideoForm
       Caption = #36873#25321#35774#22791
     end
   end
-  object ImageList: TImageList
-    Left = 696
-    Top = 304
+  object ImageList1: TImageList
+    Height = 320
+    Width = 240
+    Left = 376
+    Top = 456
   end
 end

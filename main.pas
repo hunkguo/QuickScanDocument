@@ -20,8 +20,9 @@ type
     edt_project_name: TEdit;
     rg_documents: TRadioGroup;
     btn_save: TButton;
-    lv1: TListView;
-    ImageList: TImageList;
+    ImageList1: TImageList;
+    Image1: TImage;
+    ListView1: TListView;
 
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -103,7 +104,7 @@ end;
 
 procedure TVideoForm.btn_snapClick(Sender: TObject);
 begin
-  SampleGrabber.GetBitmap(Image.Picture.Bitmap);
+  SampleGrabber.GetBitmap(Image1.Picture.Bitmap);
 end;
 
 procedure TVideoForm.edt_project_nameExit(Sender: TObject);
@@ -150,18 +151,16 @@ procedure TVideoForm.btn_saveClick(Sender: TObject);
 var
   jp: TJPEGImage;
   i : integer;
-  Bitmap: TBitmap;
+  Bitmap : TBitmap;
+  savejpgname :string;
 begin
-  
+
   jp := TJPEGImage.Create;
-  try
-    with jp do
-    begin
-       Bitmap := TBitmap.Create;
+      Bitmap := TBitmap.Create;
       SampleGrabber.GetBitmap(Bitmap);
       jp.CompressionQuality := 40;
       jp.Compress ;
-      Assign(Bitmap);
+      jp.Assign(Bitmap);
       Bitmap.Free;
       if not DirectoryExists(ExtractFilePath(Paramstr(0)) +edt_project_name.Text) then
       begin
@@ -176,14 +175,30 @@ begin
       end;
 
       //ChDir(rg_documents.Items[rg_documents.ItemIndex]);
-      SaveToFile(GetUniqueFileName(rg_documents.Items[rg_documents.ItemIndex]+'.jpg'));
+      savejpgname:=GetUniqueFileName(rg_documents.Items[rg_documents.ItemIndex]+'.jpg');
+      jp.SaveToFile(savejpgname);
       //Image.Picture.SaveToFile(ExtractFilePath(Paramstr(0)) +rg_documents.Items[rg_documents.ItemIndex]+'.jpg');
       //showmessage(GetUniqueFileName(rg_documents.Items[rg_documents.ItemIndex]+'.jpg'));
 
-    end;
-  finally
-    jp.Free;
-  end;
+      //加载保存的jpeg图片，生成缩略图，添加到imagelist
+        TRY
+            jp.LoadFromFile(savejpgname);
+//            if (ImageList.Count = 0) then
+//              ImageList1.SetSize(JpgIn.Width, JpgIn.Height);
+            Bitmap := TBitmap.Create;
+            try
+              Bitmap.Assign(jp);
+              ImageList1.Add(Bitmap, nil);
+              ListView1.Items.Add();
+              Image1.Picture.Assign(Bitmap);
+            finally
+              Bitmap.Free;
+            end;
+          finally
+            jp.Free;
+          end;
+
+
 end;
 
 end.
