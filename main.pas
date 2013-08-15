@@ -40,7 +40,6 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ScrollBox1MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
-    procedure ScrollBox1Click(Sender: TObject);
     procedure N1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
  
@@ -265,6 +264,13 @@ begin
       rg_documents.ItemIndex := 0;
 
   self.edt_project_name.SetFocus;
+
+  //创建Document目录
+  if not DirectoryExists(ExtractFilePath(Paramstr(0)) +'Document') then
+  begin
+     CreateDir(ExtractFilePath(Paramstr(0)) +'Document');
+
+  end;
   
 
 end;
@@ -300,7 +306,8 @@ procedure TVideoForm.edt_project_nameExit(Sender: TObject);
 begin
       if trim(self.edt_project_name.Text) = '' then
       begin
-         self.edt_project_name.SetFocus;
+        ShowMessage('请选输入项目名称！');
+        self.edt_project_name.SetFocus;
       end;
 end;
 
@@ -426,19 +433,6 @@ begin
 
 end;
 
-procedure TVideoForm.ScrollBox1Click(Sender: TObject);
-var
-  path1:string;
-begin
-  if((Sender is TImage) or (Sender is TLabel)) then
-  begin
-    path1:=Filelist.Strings[NamPos-1];
-    PreviewForm.Image1.Picture.LoadFromFile(path1);
-    VideoForm.Hide;
-    PreviewForm.Caption :=path1;
-    PreviewForm.ShowModal;
-  end;
-end;
 
 procedure TVideoForm.N1Click(Sender: TObject);
 var

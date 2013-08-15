@@ -29,9 +29,9 @@ uses main;
 procedure TPreviewForm.FormCreate(Sender: TObject);
 begin
   Image1.Stretch:=True;
-  if(Image1.Picture.Width<Image1.Width) and
-    (Image1.Picture.Height<Image1.Height) then
-    Image1.Stretch:=False;
+  //if(Image1.Picture.Width<Image1.Width) and
+  //  (Image1.Picture.Height<Image1.Height) then
+  //  Image1.Stretch:=False;
 end;
 
 procedure TPreviewForm.FormClose(Sender: TObject;
