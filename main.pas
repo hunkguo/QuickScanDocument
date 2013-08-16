@@ -239,6 +239,7 @@ var
 begin
   SysDev:= TSysDevEnum.Create(CLSID_VideoInputDeviceCategory);
   if SysDev.CountFilters > 0 then
+  begin   
     for i := 0 to SysDev.CountFilters - 1 do
     begin
       Device := TMenuItem.Create(Devices);
@@ -247,15 +248,17 @@ begin
       Device.OnClick := OnSelectDevice;
       Devices.Add(Device);
     end;
+    FilterGraph.ClearGraph;
+    FilterGraph.Active := false;
+    Filter.BaseFilter.Moniker := SysDev.GetMoniker(SysDev.CountFilters - 1);
+    FilterGraph.Active := true;
+    with FilterGraph as ICaptureGraphBuilder2 do
+      RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
+    FilterGraph.Play;
+  end;
 
     
-  FilterGraph.ClearGraph;
-  FilterGraph.Active := false;
-  Filter.BaseFilter.Moniker := SysDev.GetMoniker(SysDev.CountFilters - 1);
-  FilterGraph.Active := true;
-  with FilterGraph as ICaptureGraphBuilder2 do
-    RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
-  FilterGraph.Play;
+
 
   
 
@@ -263,13 +266,10 @@ begin
   if rg_documents.ItemIndex = -1 then
       rg_documents.ItemIndex := 0;
 
-  self.edt_project_name.SetFocus;
-
   //创建Document目录
   if not DirectoryExists(ExtractFilePath(Paramstr(0)) +'Document') then
   begin
      CreateDir(ExtractFilePath(Paramstr(0)) +'Document');
-
   end;
   
 
@@ -353,6 +353,13 @@ var
   Bitmap : TBitmap;
   savejpgname :string;
 begin
+      if trim(self.edt_project_name.Text) = '' then
+      begin
+        ShowMessage('请选输入项目名称！');
+        self.edt_project_name.SetFocus;
+        Exit;
+      end;
+
       //保存捕捉的图片
       jp := TJPEGImage.Create;
       Bitmap := TBitmap.Create;
