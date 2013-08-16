@@ -255,6 +255,12 @@ begin
     with FilterGraph as ICaptureGraphBuilder2 do
       RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
     FilterGraph.Play;
+  end
+  else
+  begin
+    ShowMessage('未找到可用设备，程序将退出！');
+    ExitProcess(0);
+    Application.Terminate;
   end;
 
     
