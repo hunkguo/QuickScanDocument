@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 303
-  Top = 46
-  Width = 922
-  Height = 667
+  Left = 405
+  Top = 166
+  Width = 1216
+  Height = 536
   Caption = #25991#26723#24555#36895#25195#25551
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -188,82 +188,66 @@ object VideoForm: TVideoForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel2: TPanel
-    Left = 640
-    Top = 0
-    Width = 265
-    Height = 481
-    BevelOuter = bvNone
-    TabOrder = 0
-    object btn_save: TButton
-      Left = 21
-      Top = 369
-      Width = 212
-      Height = 64
-      Caption = #20445#23384' &s'
-      TabOrder = 0
-      OnClick = btn_saveClick
-    end
-    object rg_documents: TRadioGroup
-      Left = 24
-      Top = 65
-      Width = 209
-      Height = 296
-      Caption = #36873#25321#25991#26723' &d'
-      TabOrder = 1
-    end
-    object edt_project_name: TEdit
-      Left = 24
-      Top = 44
-      Width = 209
-      Height = 21
-      TabOrder = 2
-      OnExit = edt_project_nameExit
-    end
-    object Panel3: TPanel
-      Left = 8
-      Top = 24
-      Width = 233
-      Height = 17
-      BevelOuter = bvNone
-      Caption = #39033#30446#21517#31216#65306'                                               '
-      TabOrder = 3
-    end
-  end
-  object Panel4: TPanel
-    Left = 0
-    Top = 480
-    Width = 905
-    Height = 129
-    BevelOuter = bvNone
-    TabOrder = 1
-    object ScrollBox1: TScrollBox
-      Left = 0
-      Top = 0
-      Width = 905
-      Height = 129
-      BevelInner = bvNone
-      BorderStyle = bsNone
-      TabOrder = 0
-      OnDblClick = ScrollBox1DblClick
-      OnMouseMove = ScrollBox1MouseMove
-    end
-  end
   object Panel1: TPanel
-    Left = 0
-    Top = 0
-    Width = 640
-    Height = 480
+    Left = 256
+    Top = -8
+    Width = 642
+    Height = 482
+    AutoSize = True
     Caption = 'Panel1'
-    TabOrder = 2
+    TabOrder = 0
     object VideoWindow: TVideoWindow
-      Left = 0
-      Top = 0
+      Left = 1
+      Top = 1
       Width = 640
       Height = 480
       FilterGraph = FilterGraph
       VMROptions.Mode = vmrWindowed
       Color = clBlack
+    end
+  end
+  object Panel2: TPanel
+    Left = 0
+    Top = 8
+    Width = 257
+    Height = 465
+    Caption = 'Panel2'
+    TabOrder = 1
+    object ShellTreeView1: TShellTreeView
+      Left = 0
+      Top = 0
+      Width = 257
+      Height = 465
+      ObjectTypes = [otFolders]
+      Root = 'rfDesktop'
+      UseShellImages = True
+      AutoRefresh = False
+      Indent = 19
+      ParentColor = False
+      PopupMenu = PopupMenu1
+      RightClickSelect = True
+      ShowRoot = False
+      TabOrder = 0
+    end
+  end
+  object Panel3: TPanel
+    Left = 896
+    Top = 0
+    Width = 300
+    Height = 473
+    BevelOuter = bvNone
+    Caption = 'Panel3'
+    Ctl3D = True
+    ParentCtl3D = False
+    TabOrder = 2
+    object ScrollBox1: TScrollBox
+      Left = 0
+      Top = 0
+      Width = 300
+      Height = 473
+      BevelOuter = bvSpace
+      BorderStyle = bsNone
+      TabOrder = 0
     end
   end
   object FilterGraph: TFilterGraph
@@ -293,15 +277,10 @@ object VideoForm: TVideoForm
     end
   end
   object PopupMenu1: TPopupMenu
-    Left = 24
-    Top = 504
+    Left = 40
+    Top = 288
     object N1: TMenuItem
-      Caption = #25171#24320
-      OnClick = N1Click
-    end
-    object N2: TMenuItem
-      Caption = #21024#38500
-      OnClick = N2Click
+      Caption = #26032#24314#39033#30446
     end
   end
 end

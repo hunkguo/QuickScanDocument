@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, DSUtil, StdCtrls, DSPack, DirectShow9, Menus, ExtCtrls,jpeg,
-  ComCtrls, ImgList;
+  ComCtrls, ImgList,IniFiles, ShellCtrls;
 
 type
   TVideoForm = class(TForm)
@@ -14,28 +14,25 @@ type
     Devices: TMenuItem;
     Filter: TFilter;
     SampleGrabber: TSampleGrabber;
-    edt_project_name: TEdit;
-    rg_documents: TRadioGroup;
-    btn_save: TButton;
     VideoWindow: TVideoWindow;
+    Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
-    Panel4: TPanel;
-    Panel1: TPanel;
     ScrollBox1: TScrollBox;
+    ShellTreeView1: TShellTreeView;
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
-    N2: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure btn_snapClick(Sender: TObject);
-    procedure edt_project_nameExit(Sender: TObject);
     procedure btn_saveClick(Sender: TObject);
     
     procedure ShowImage(); 
     procedure ClearImage();
     procedure DeleteImage(i:Integer);
+    procedure initDirectory();
+    procedure initControl();
     procedure ScrollBox1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ScrollBox1MouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -54,10 +51,10 @@ var
   VideoForm: TVideoForm;
   SysDev: TSysDevEnum;
   
-    Image:array[0..1000] of TImage;
-      //存放缩略图
+  Image:array[0..1000] of TImage;
+  //存放缩略图
   ImgName : array[0..1000] of TLabel;
-//  存放图片名
+  //  存放图片名
   BackGroud : array[0..1000] of TPanel;
   //放置缩略图和图片名的背景
   ImgNameBak :array[0..1000] of TPanel;
@@ -66,11 +63,151 @@ var
   //缩略图的位置和图片数量
   Path :string; //当前图片的路径
   Filelist: TStringList; //记录当前路径下的所有图片名
+
+  Document:string;
+
+  DocPanel :array[0..100] of TPanel;  
+  DocPanelTitle :array[0..100] of TLabel;
+  SnapButton :array[0..100] of TButton;
+
+
 implementation
 
 uses preview;
 
 {$R *.dfm}
+
+procedure TVideoForm.initControl();
+var
+  ini:TInifile;
+  list:TStringList;
+  i,SnapButtonCount:integer;
+  j,k:Integer;
+
+begin
+      ini:=TInifile.Create('./Config/Default.ini');
+      list:=TStringlist.Create;
+      ini.ReadSection('Documents',list);
+      for i:=0 to list.Count-1 do
+      begin
+        //初始化按钮的容器panel
+        DocPanel[i]:=TPanel.Create(self);
+        DocPanel[i].Parent:=ScrollBox1;
+        DocPanel[i].Visible:=True;
+        DocPanel[i].Width:=280;
+
+        DocPanelTitle[i]:=TLabel.Create(self);
+        DocPanelTitle[i].Parent:=DocPanel[i];
+        DocPanelTitle[i].Visible:=True;
+        DocPanelTitle[i].Width:=280;
+        DocPanelTitle[i].Height:=10;
+        DocPanelTitle[i].Caption:=list[i];
+        DocPanelTitle[i].Top:=DocPanel[i].Top+5;
+        DocPanelTitle[i].left:=DocPanel[i].left+5;
+
+        //初始化按钮
+        SnapButtonCount:=StrToInt(ini.ReadString('Documents',list[i],'0'));
+        if(SnapButtonCount>0) then
+        begin
+
+          for j:=1 to SnapButtonCount do
+          begin                        
+              SnapButton[j]:=TButton.Create(self);
+              SnapButton[j].Parent:=DocPanel[i];
+              SnapButton[j].Visible:=True;
+              SnapButton[j].Width:=50;
+              SnapButton[j].height:=50;
+              SnapButton[j].Caption:=IntToStr(j);
+              //判断按钮位置，5个换行
+              if(j>=1) and (j<=5) then
+              begin
+                if(j=1) then
+                begin
+                  SnapButton[j].Top:=25;
+                  SnapButton[j].Left :=5;
+                end;
+                if(j>=2) and (j<=5) then
+                begin
+                  SnapButton[j].Top:=SnapButton[j-1].Top;
+                  SnapButton[j].Left :=SnapButton[j-1].left+55;
+                end;
+              end
+              else
+              begin
+                k:=Trunc(j/5);           
+                if((j mod (k*5))=1) then
+                begin
+                  if k=1 then
+                  begin
+                    SnapButton[j].Top:=25+50*k+5;
+                    SnapButton[j].Left:=5;
+                  end
+                  else
+                  begin
+                    SnapButton[j].Top:=25+50*k+5*k;
+                    SnapButton[j].Left:=5;
+                    //SnapButton[j].Caption:= IntToStr(SnapButton[j].Top +SnapButton[j].Left);
+                  end;
+                end
+                else
+                begin
+                  SnapButton[j].Top:=SnapButton[j-1].Top;
+                  SnapButton[j].Left:=SnapButton[j-1].Left+55;
+                end;
+              end;
+
+          end;
+        end;
+        //初始化panel高度，根据按钮数量 
+        DocPanel[i].Height:=35+ ((Trunc(SnapButtonCount/5)+1)*50)+(Trunc(SnapButtonCount/5))*5; 
+        if(i=0) then
+        begin
+
+            DocPanel[i].Top:=ScrollBox1.top;
+            DocPanel[i].Left:=ScrollBox1.Left;
+            //DocPanel[i].Height:=35+ ((Trunc(SnapButtonCount/5)+1)*50);
+        end;
+        if(i>0) then
+        begin
+            DocPanel[i].Top:=DocPanel[i-1].top+DocPanel[i-1].Height+15;
+            DocPanel[i].Left:=DocPanel[i-1].Left;
+
+        end;
+      end;
+
+      //初始化shelltreeview root为当前项目目录
+      ShellTreeView1.Root:=Document;
+end;
+procedure TVideoForm.initDirectory;
+var
+  ini:TInifile;
+  list:TStringList;
+  i:integer;
+  allName:string;
+begin
+  //载入配置文件中的目录
+  try
+      ini:=TInifile.Create('./Config/Default.ini');
+      list:=TStringlist.Create;
+      ini.ReadSection('Directory',list);
+      allName:='';
+      for i:=0 to list.Count-1 do
+      begin
+        allName:=allName+'\'+ini.ReadString('Directory',list[i],'');
+        if not DirectoryExists(Document+allName) then
+        begin
+           CreateDir(Document+allName);
+        end;
+      end;
+  
+  finally
+    list.free;
+    ini.Free;
+  end;
+
+
+
+end;
 procedure TVideoForm.ClearImage;
 var
   i:Integer;
@@ -171,11 +308,9 @@ var
       Image[i].Picture.LoadFromFile(Path);
       ImgNameBak[i].OnClick:=ScrollBox1.OnClick;
       ImgNameBak[i].OnDblClick:=ScrollBox1.OnDblClick;
-      ImgNameBak[i].PopupMenu:=PopupMenu1;
       Image[i].OnMouseMove:=ScrollBox1.OnMouseMove;
       Image[i].OnClick:=ScrollBox1.OnClick;
       Image[i].OnDblClick:=ScrollBox1.OnDblClick;
-      Image[i].PopupMenu:=PopupMenu1;
       if (Image[i].Picture.Width<98) and (Image[i].Picture.Height<98) then
          Image[i].Stretch:=False;
       //如果图片小于image 的大小则以图片的实际大小显示
@@ -192,7 +327,7 @@ var
           Image[i].Top:=3;
           Image[i].Left:=3;
           Image[i].Visible:=True;
-          
+
         end;
         if(i>=2) and (i<=8) then
         begin
@@ -268,15 +403,23 @@ begin
 
   
 
-  rg_documents.Items.CommaText:='用地申请,技术报告书,分幅图';
-  if rg_documents.ItemIndex = -1 then
-      rg_documents.ItemIndex := 0;
+
+
+  Document:=ExtractFilePath(Paramstr(0)) +'Document\';
 
   //创建Document目录
-  if not DirectoryExists(ExtractFilePath(Paramstr(0)) +'Document') then
+  if not DirectoryExists(Document) then
   begin
-     CreateDir(ExtractFilePath(Paramstr(0)) +'Document');
+     CreateDir(Document);
   end;
+
+  //初始化目录，从default.ini文件读取配置
+  initDirectory();
+
+  
+  //初始化控件，从default.ini文件读取配置
+  initControl();
+
   
 
 end;
@@ -307,18 +450,6 @@ procedure TVideoForm.btn_snapClick(Sender: TObject);
 begin
   //SampleGrabber.GetBitmap(Image1.Picture.Bitmap);
 end;
-
-procedure TVideoForm.edt_project_nameExit(Sender: TObject);
-begin
-      if trim(self.edt_project_name.Text) = '' then
-      begin
-        ShowMessage('请选输入项目名称！');
-        self.edt_project_name.SetFocus;
-      end;
-end;
-
-
-
 
 function MakeFileNameUnique(const FileName:string;const iUnique:integer):string;
 begin
@@ -359,12 +490,6 @@ var
   Bitmap : TBitmap;
   savejpgname :string;
 begin
-      if trim(self.edt_project_name.Text) = '' then
-      begin
-        ShowMessage('请选输入项目名称！');
-        self.edt_project_name.SetFocus;
-        Exit;
-      end;
 
       //保存捕捉的图片
       jp := TJPEGImage.Create;
@@ -374,20 +499,6 @@ begin
       jp.Compress ;
       jp.Assign(Bitmap);
       Bitmap.Free;
-      if not DirectoryExists(ExtractFilePath(Paramstr(0)) +edt_project_name.Text) then
-      begin
-         CreateDir(ExtractFilePath(Paramstr(0)) +'Document\'+edt_project_name.Text);
-         ChDir(ExtractFilePath(Paramstr(0)) +'Document\'+edt_project_name.Text);
-          //为每一种文档类型创建目录
-         //for i:=0 to  rg_documents.ControlCount-1 do
-         //begin
-         //   CreateDir(rg_documents.Items[i]);
-         //end;
-
-      end;
-
-      //ChDir(rg_documents.Items[rg_documents.ItemIndex]);
-      savejpgname:=GetUniqueFileName(rg_documents.Items[rg_documents.ItemIndex]+'.jpg');
       jp.SaveToFile(savejpgname);
       //Image.Picture.SaveToFile(ExtractFilePath(Paramstr(0)) +rg_documents.Items[rg_documents.ItemIndex]+'.jpg');
       //showmessage(GetUniqueFileName(rg_documents.Items[rg_documents.ItemIndex]+'.jpg'));
