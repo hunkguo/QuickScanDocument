@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 346
-  Top = 99
+  Left = 303
+  Top = 46
   Width = 922
-  Height = 671
+  Height = 667
   Caption = #25991#26723#24555#36895#25195#25551
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
