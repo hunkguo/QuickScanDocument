@@ -27,6 +27,7 @@ type
     scrlbx_pic: TScrollBox;
     PopupMenu2: TPopupMenu;
     StatusBar1: TStatusBar;
+    N3: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -53,6 +54,7 @@ type
     procedure scrlbx_picClick(Sender: TObject);
     procedure imgPreviewDblClick(Sender: TObject);
     procedure imgPreviewClick(Sender: TObject);
+    procedure N3Click(Sender: TObject);
  
   private
     { D閏larations priv閑s }
@@ -328,7 +330,7 @@ var
       //动态创建Timage,用来存放缩略图
       ImgNameBak[i]:=TPanel.Create(self);
       ImgNameBak[i].Parent:=BackGroud[i];
-      ImgNameBak[i].BevelOuter:=bvLowered;
+      ImgNameBak[i].BevelOuter:=bvNone;
       ImgNameBak[i].Font.Size:=9;
       ImgNameBak[i].Font.Color:=clBlue;
       ImgNameBak[i].Width:=100;
@@ -336,7 +338,7 @@ var
       //动态创建ImgNameBak,用来作为imgname的背景
       ImgName[i]:=TLabel.Create(self);
       ImgName[i].Parent:=ImgNameBak[i];
-      ImgName[i].Font.Color :=clBlue;
+      ImgName[i].Font.Color :=clBlack;
       ImgName[i].Width:=100;
       //动态创建ImgName,用来存放图片名
       Path :=ShellTreeView1.Path+'\'+Filelist.Strings[i-1];
@@ -345,9 +347,11 @@ var
       Image[i].Picture.LoadFromFile(Path);
       ImgNameBak[i].OnClick:=scrlbx_pic.OnClick;
       ImgNameBak[i].OnDblClick:=scrlbx_pic.OnDblClick;
+      ImgNameBak[i].PopupMenu:=PopupMenu2;
       Image[i].OnMouseMove:=scrlbx_pic.OnMouseMove;
       Image[i].OnClick:=scrlbx_pic.OnClick;
       Image[i].OnDblClick:=scrlbx_pic.OnDblClick;
+      Image[i].PopupMenu:=PopupMenu2;
       if (Image[i].Picture.Width<98) and (Image[i].Picture.Height<98) then
          Image[i].Stretch:=False;
       //如果图片小于image 的大小则以图片的实际大小显示
@@ -588,15 +592,23 @@ begin
     begin
        CreateDir(ShellTreeView1.Path+'\'+projectName);
     end;
+    ShellTreeView1.Refresh(ShellTreeView1.Selected);
+    ShellTreeView1.Selected.Expand(true);
 
   end;
 end;
 
 procedure TVideoForm.N2Click(Sender: TObject);
 begin
-  //删除功能不完善
-  DeleteDir(ShellTreeView1.Path);  
-  shelltreeview1.Selected.Parent.Selected := true;
+  //删除包含文件的目录功能不完善
+  //DeleteDir(ShellTreeView1.Path);
+  try
+    removedir(ShellTreeView1.Path);
+    shelltreeview1.Selected.Parent.Selected := true;
+  except
+    ShowMessage('文件夹下还有文件，请先删除！');
+  end;
+
 
 end;
 
@@ -780,6 +792,26 @@ begin
 
   imgPreview.Visible:=False;
   VideoWindow.Visible:=True;
+end;
+
+procedure TVideoForm.N3Click(Sender: TObject); 
+var
+  path1:string;
+begin
+  
+  if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
+  begin
+    path1:=Filelist.Strings[NamPos-1];
+    DeleteFile(ShellTreeView1.path+'\'+path1);
+    DeleteImage(NamPos);
+    ShowImage;
+
+
+
+
+  
+  end;
+
 end;
 
 end.

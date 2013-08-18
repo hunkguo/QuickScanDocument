@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 403
-  Top = 321
-  Width = 1224
-  Height = 757
+  Left = 376
+  Top = 242
+  Width = 1219
+  Height = 744
   Caption = #25991#26723#24555#36895#25195#25551
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -265,16 +265,16 @@ object VideoForm: TVideoForm
     Left = 0
     Top = 472
     Width = 1201
-    Height = 209
+    Height = 185
     TabOrder = 3
     OnClick = scrlbx_picClick
     OnMouseMove = scrlbx_picMouseMove
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 682
-    Width = 1208
-    Height = 17
+    Top = 658
+    Width = 1203
+    Height = 28
     Panels = <>
   end
   object FilterGraph: TFilterGraph
@@ -318,5 +318,9 @@ object VideoForm: TVideoForm
   object PopupMenu2: TPopupMenu
     Left = 56
     Top = 504
+    object N3: TMenuItem
+      Caption = #21024#38500
+      OnClick = N3Click
+    end
   end
 end
