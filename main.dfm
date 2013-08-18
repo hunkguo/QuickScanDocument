@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 405
-  Top = 166
-  Width = 1216
-  Height = 536
+  Left = 403
+  Top = 321
+  Width = 1224
+  Height = 757
   Caption = #25991#26723#24555#36895#25195#25551
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -191,14 +191,23 @@ object VideoForm: TVideoForm
   object Panel1: TPanel
     Left = 256
     Top = -8
-    Width = 642
-    Height = 482
+    Width = 643
+    Height = 483
     AutoSize = True
     Caption = 'Panel1'
     TabOrder = 0
-    object VideoWindow: TVideoWindow
+    object imgPreview: TImage
       Left = 1
       Top = 1
+      Width = 640
+      Height = 480
+      Visible = False
+      OnClick = imgPreviewClick
+      OnDblClick = imgPreviewDblClick
+    end
+    object VideoWindow: TVideoWindow
+      Left = 2
+      Top = 2
       Width = 640
       Height = 480
       FilterGraph = FilterGraph
@@ -221,13 +230,15 @@ object VideoForm: TVideoForm
       ObjectTypes = [otFolders]
       Root = 'rfDesktop'
       UseShellImages = True
-      AutoRefresh = False
+      OnAddFolder = ShellTreeView1AddFolder
+      AutoRefresh = True
       Indent = 19
       ParentColor = False
       PopupMenu = PopupMenu1
       RightClickSelect = True
       ShowRoot = False
       TabOrder = 0
+      OnClick = ShellTreeView1Click
     end
   end
   object Panel3: TPanel
@@ -249,6 +260,22 @@ object VideoForm: TVideoForm
       BorderStyle = bsNone
       TabOrder = 0
     end
+  end
+  object scrlbx_pic: TScrollBox
+    Left = 0
+    Top = 472
+    Width = 1201
+    Height = 209
+    TabOrder = 3
+    OnClick = scrlbx_picClick
+    OnMouseMove = scrlbx_picMouseMove
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Top = 682
+    Width = 1208
+    Height = 17
+    Panels = <>
   end
   object FilterGraph: TFilterGraph
     Mode = gmCapture
@@ -281,6 +308,15 @@ object VideoForm: TVideoForm
     Top = 288
     object N1: TMenuItem
       Caption = #26032#24314#39033#30446
+      OnClick = N1Click
     end
+    object N2: TMenuItem
+      Caption = #21024#38500'('#27979#35797')'
+      OnClick = N2Click
+    end
+  end
+  object PopupMenu2: TPopupMenu
+    Left = 56
+    Top = 504
   end
 end

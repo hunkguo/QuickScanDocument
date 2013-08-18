@@ -22,6 +22,11 @@ type
     ShellTreeView1: TShellTreeView;
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
+    N2: TMenuItem;
+    imgPreview: TImage;
+    scrlbx_pic: TScrollBox;
+    PopupMenu2: TPopupMenu;
+    StatusBar1: TStatusBar;
 
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -30,15 +35,24 @@ type
     
     procedure ShowImage(); 
     procedure ClearImage();
+    procedure refreshDir();
     procedure DeleteImage(i:Integer);
     procedure initDirectory();
     procedure initControl();
+    procedure DeleteDir(sDirectory: String);
     procedure ScrollBox1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure ScrollBox1MouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
     procedure N1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
+    procedure SnapClick(Sender: TObject);
+    procedure ShellTreeView1AddFolder(Sender: TObject;
+      AFolder: TShellFolder; var CanAdd: Boolean);
+    procedure ShellTreeView1Click(Sender: TObject);
+    procedure scrlbx_picMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure scrlbx_picClick(Sender: TObject);
+    procedure imgPreviewDblClick(Sender: TObject);
+    procedure imgPreviewClick(Sender: TObject);
  
   private
     { D閏larations priv閑s }
@@ -68,7 +82,7 @@ var
 
   DocPanel :array[0..100] of TPanel;  
   DocPanelTitle :array[0..100] of TLabel;
-  SnapButton :array[0..100] of TButton;
+  SnapButton :array[0..500] of TButton;
 
 
 implementation
@@ -76,7 +90,28 @@ implementation
 uses preview;
 
 {$R *.dfm}
-
+procedure TVideoForm.refreshDir();
+var
+  sr: TSearchRec;
+begin
+if not Assigned(Filelist) then
+  begin
+    Filelist := TStringList.Create;
+  end;
+  Filelist.Clear;
+  if(FindFirst(ShellTreeView1.Path +'\*.*',faAnyFile,sr)=0) then
+  begin
+    repeat
+      if(UpperCase(ExtractFileExt(sr.Name))='.JPG')or
+      (UpperCase(ExtractFileExt(sr.Name))='.ICO')or
+      (UpperCase(ExtractFileExt(sr.Name))='.BMP')or
+      (UpperCase(ExtractFileExt(sr.Name))='.JEPG')
+      then
+        Filelist.Add(sr.Name);
+    until FindNext(sr)<>0;
+    FindClose(sr);
+  end;
+end;
 procedure TVideoForm.initControl();
 var
   ini:TInifile;
@@ -118,6 +153,7 @@ begin
               SnapButton[j].Width:=50;
               SnapButton[j].height:=50;
               SnapButton[j].Caption:=IntToStr(j);
+              SnapButton[j].OnClick:=SnapClick;
               //判断按钮位置，5个换行
               if(j>=1) and (j<=5) then
               begin
@@ -175,8 +211,6 @@ begin
         end;
       end;
 
-      //初始化shelltreeview root为当前项目目录
-      ShellTreeView1.Root:=Document;
 end;
 procedure TVideoForm.initDirectory;
 var
@@ -199,6 +233,9 @@ begin
            CreateDir(Document+allName);
         end;
       end;
+      
+      //初始化shelltreeview root为当前项目目录
+      ShellTreeView1.Root:=Document+allName;
   
   finally
     list.free;
@@ -276,7 +313,7 @@ var
     for i:=1 to Imgcount do
     begin
       BackGroud[i]:=TPanel.Create(self);
-      BackGroud[i].Parent:=ScrollBox1;
+      BackGroud[i].Parent:=scrlbx_pic;
       BackGroud[i].Visible:=True;
       BackGroud[i].Width:=104;
       BackGroud[i].Height:=118;
@@ -302,15 +339,15 @@ var
       ImgName[i].Font.Color :=clBlue;
       ImgName[i].Width:=100;
       //动态创建ImgName,用来存放图片名
-      Path :=Filelist.Strings[i-1];
+      Path :=ShellTreeView1.Path+'\'+Filelist.Strings[i-1];
       //设置文件路径
 
       Image[i].Picture.LoadFromFile(Path);
-      ImgNameBak[i].OnClick:=ScrollBox1.OnClick;
-      ImgNameBak[i].OnDblClick:=ScrollBox1.OnDblClick;
-      Image[i].OnMouseMove:=ScrollBox1.OnMouseMove;
-      Image[i].OnClick:=ScrollBox1.OnClick;
-      Image[i].OnDblClick:=ScrollBox1.OnDblClick;
+      ImgNameBak[i].OnClick:=scrlbx_pic.OnClick;
+      ImgNameBak[i].OnDblClick:=scrlbx_pic.OnDblClick;
+      Image[i].OnMouseMove:=scrlbx_pic.OnMouseMove;
+      Image[i].OnClick:=scrlbx_pic.OnClick;
+      Image[i].OnDblClick:=scrlbx_pic.OnDblClick;
       if (Image[i].Picture.Width<98) and (Image[i].Picture.Height<98) then
          Image[i].Stretch:=False;
       //如果图片小于image 的大小则以图片的实际大小显示
@@ -318,7 +355,7 @@ var
       ImgNameBak[i].Caption:=ImgName[i].Caption;
       ImgName[i].Visible:=False;
       //显示图片名，保证图片名 居中
-      if(i>=1) and (i<=8) then
+      if(i>=1) and (i<=10) then
       begin
         if(i=1) then
         begin
@@ -329,7 +366,7 @@ var
           Image[i].Visible:=True;
 
         end;
-        if(i>=2) and (i<=8) then
+        if(i>=2) and (i<=10) then
         begin
           BackGroud[i].Top:=BackGroud[i-1].Top;
           BackGroud[i].Left:=BackGroud[i-1].Left+108;
@@ -341,8 +378,8 @@ var
       end
       else
       begin
-        k:=Trunc(i/8);
-        if((i mod (k*8))=1) then
+        k:=Trunc(i/10);
+        if((i mod (k*10))=1) then
         begin
           if k=1 then
             BackGroud[i].Top:=130
@@ -405,7 +442,7 @@ begin
 
 
 
-  Document:=ExtractFilePath(Paramstr(0)) +'Document\';
+  Document:=ExtractFilePath(Paramstr(0)) +'Document';
 
   //创建Document目录
   if not DirectoryExists(Document) then
@@ -420,7 +457,10 @@ begin
   //初始化控件，从default.ini文件读取配置
   initControl();
 
-  
+
+
+
+
 
 end;
 
@@ -536,11 +576,165 @@ begin
   ClearImage;
 end;
 
-procedure TVideoForm.ScrollBox1MouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer);
+procedure TVideoForm.N1Click(Sender: TObject);
+var
+  projectName:string;
+begin
+  projectName:=InputBox( '输入项目名称','项目名称','');
+  if trim(projectName)<>'' then
+  begin
+     
+    if not DirectoryExists(ShellTreeView1.Path+'\'+projectName) then
+    begin
+       CreateDir(ShellTreeView1.Path+'\'+projectName);
+    end;
+
+  end;
+end;
+
+procedure TVideoForm.N2Click(Sender: TObject);
+begin
+  //删除功能不完善
+  DeleteDir(ShellTreeView1.Path);  
+  shelltreeview1.Selected.Parent.Selected := true;
+
+end;
+
+procedure TVideoForm.DeleteDir(sDirectory: String);
+  //删除目录和目录下得所有文件和文件夹
+var 
+  sr: TSearchRec;
+  sPath,sFile: String; 
+begin 
+  //检查目录名后面是否有 '\'
+  if Copy(sDirectory,Length(sDirectory),1) <> '\' then 
+    sPath := sDirectory + '\'
+  else
+    sPath := sDirectory;
+
+  //------------------------------------------------------------------ 
+  if FindFirst(sPath+'*.*',faAnyFile, sr) = 0 then 
+  begin 
+    repeat
+    sFile:=Trim(sr.Name); 
+    if sFile='.' then Continue; 
+    if sFile='..' then Continue;
+
+    sFile:=sPath+sr.Name; 
+    if (sr.Attr and faDirectory)<>0 then 
+      DeleteDir(sFile)
+    else if (sr.Attr and faAnyFile) = sr.Attr then 
+      DeleteFile(sFile); //删除文件
+    until FindNext(sr) <> 0; 
+    FindClose(sr);
+  end; 
+  RemoveDir(sPath); 
+  //------------------------------------------------------------------
+end;
+
+
+procedure TVideoForm.SnapClick(Sender: TObject);
+var
+  i:Integer;
+  btn:TButton;
+  palTitle:TPanel;   
+  jp: TJPEGImage;
+  Bitmap : TBitmap;
+  savejpgname :string;
+  node:TTreeNode;
+begin
+  if(Sender is TButton) then
+  begin
+    btn:=TButton(Sender);
+    palTitle:=TPanel(btn.Parent.Controls[0]);
+    //ShowMessage(panel1.Caption);
+    //判断选中的是文件夹还是文件
+    {
+    if ShellTreeView1.SelectedFolder.IsFolder then
+    begin
+        savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
+      end
+      else
+        shelltreeview1.Selected.Parent.Selected := true;
+        savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
+      begin
+    end;
+    }
+
+      savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';    
+      //ShowMessage(savejpgname);
+      //保存捕捉的图片
+      jp := TJPEGImage.Create;
+      Bitmap := TBitmap.Create;
+      SampleGrabber.GetBitmap(Bitmap);
+      jp.CompressionQuality := 40;
+      jp.Compress ;
+      jp.Assign(Bitmap);
+      Bitmap.Free;
+      jp.SaveToFile(savejpgname);
+
+      //ShellTreeView1.ObjectTypes := [otNonFolders] + ShellTreeView1.ObjectTypes;
+      //ShellTreeView1.Items.Item[nodeID].Selected:=true;
+      //ShowMessage(IntToStr(nodeID));
+      //ShowMessage(IntToStr(Shelltreeview1.Selected.Index));
+      //ShellTreeView1.Refresh(ShellTreeView1.Selected);
+      
+      refreshDir;
+      ShowImage;
+
+      
+  end;
+
+end;
+
+procedure TVideoForm.ShellTreeView1AddFolder(Sender: TObject;
+  AFolder: TShellFolder; var CanAdd: Boolean);
+  var
+    maskExt : string;
+    fileExt : string;
+begin
+ { maskExt := ExtractFileExt('*.jpg') ;
+    fileExt := ExtractFileExt(AFolder.DisplayName) ;
+    CanAdd := AFolder.IsFolder OR (CompareText(maskExt,fileExt) = 0) ;
+    }
+end;
+
+procedure TVideoForm.ShellTreeView1Click(Sender: TObject);
+begin
+  //不再从treeview选取文件
+  {
+  if ShellTreeView1.SelectedFolder.IsFolder then
+  begin
+      imgPreview.Visible:=false;
+      VideoWindow.Visible:=True;
+  end
+  else
+  begin
+      imgPreview.Visible:=True;
+      VideoWindow.Visible:=false;
+
+      
+      imgPreview.Stretch :=True;
+      imgPreview.Picture.LoadFromFile(ShellTreeView1.Path);
+      if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
+      imgPreview.Stretch:=False;
+
+
+  end;
+    //ShowMessage(ShellTreeView1.Path);
+    }
+    StatusBar1.SimpleText:='当前选择项目：'+ShellTreeView1.Selected.Text;
+    
+  //刷新目录文件列表
+  refreshDir;
+  ShowImage;
+end;
+
+procedure TVideoForm.scrlbx_picMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);   
 var
   path1:string;
-begin
+begin 
   ImgPos:=0;
   
   if not Assigned(Filelist) then
@@ -551,41 +745,41 @@ begin
     if((Sender =Image[ImgPos]) or (Sender = imgName[ImgPos])) then
     begin
       NamPos:= ImgPos;
-      path1:=FileList.strings[NamPos-1];
-      //ScrollBox1.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
+      path1:= ShellTreeView1.Path+'\'+FileList.strings[NamPos-1];
+      ScrollBox1.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
     end;
 
 end;
 
-
-procedure TVideoForm.N1Click(Sender: TObject);
+procedure TVideoForm.scrlbx_picClick(Sender: TObject); 
 var
   path1:string;
-begin
-  if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
+begin        
+  if((Sender is TImage)or (Sender is TLabel)) then
   begin
-    path1:=Filelist.Strings[NamPos-1];
-    PreviewForm.Image1.Picture.LoadFromFile(path1);
-    VideoForm.Hide;
-    PreviewForm.Caption :=path1;
-    PreviewForm.ShowModal;
+    imgPreview.Visible:=True;
+    VideoWindow.Visible:=false;
+
+    path1:=ShellTreeView1.Path+'\'+ Filelist.Strings[NamPos-1];
+    imgPreview.Stretch :=True;
+    imgPreview.Picture.LoadFromFile(path1);
+    if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
+    imgPreview.Stretch:=False;
+    //如果图片小于image1 的大小则以图片的实际大小显示
   end;
 end;
 
-procedure TVideoForm.N2Click(Sender: TObject); 
-var
-  path1:string;
-begin  
-  if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
-  begin
-    path1:=Filelist.Strings[NamPos-1];
-    DeleteFile(path1);
-    DeleteImage(NamPos);
-    ShowImage;
+procedure TVideoForm.imgPreviewDblClick(Sender: TObject);
+begin
+  imgPreview.Visible:=False;
+  VideoWindow.Visible:=True;
+end;
 
+procedure TVideoForm.imgPreviewClick(Sender: TObject);
+begin
 
-  
-  end;
+  imgPreview.Visible:=False;
+  VideoWindow.Visible:=True;
 end;
 
 end.
