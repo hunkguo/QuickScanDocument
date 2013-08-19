@@ -1,5 +1,5 @@
 object VideoForm: TVideoForm
-  Left = 376
+  Left = 501
   Top = 242
   Width = 1219
   Height = 744
@@ -222,23 +222,16 @@ object VideoForm: TVideoForm
     Height = 465
     Caption = 'Panel2'
     TabOrder = 1
-    object ShellTreeView1: TShellTreeView
-      Left = 0
+    object TreeView1: TTreeView
+      Left = 8
       Top = 0
-      Width = 257
+      Width = 249
       Height = 465
-      ObjectTypes = [otFolders]
-      Root = 'rfDesktop'
-      UseShellImages = True
-      OnAddFolder = ShellTreeView1AddFolder
-      AutoRefresh = True
+      AutoExpand = True
       Indent = 19
-      ParentColor = False
-      PopupMenu = PopupMenu1
-      RightClickSelect = True
-      ShowRoot = False
+      ReadOnly = True
       TabOrder = 0
-      OnClick = ShellTreeView1Click
+      OnMouseDown = TreeView1MouseDown
     end
   end
   object Panel3: TPanel
@@ -310,10 +303,6 @@ object VideoForm: TVideoForm
       Caption = #26032#24314#39033#30446
       OnClick = N1Click
     end
-    object N2: TMenuItem
-      Caption = #21024#38500'('#27979#35797')'
-      OnClick = N2Click
-    end
   end
   object PopupMenu2: TPopupMenu
     Left = 56
@@ -322,5 +311,9 @@ object VideoForm: TVideoForm
       Caption = #21024#38500
       OnClick = N3Click
     end
+  end
+  object PopupMenu3: TPopupMenu
+    Left = 32
+    Top = 344
   end
 end
