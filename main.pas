@@ -31,27 +31,19 @@ type
 
     procedure FormCreate(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure btn_snapClick(Sender: TObject);
-    procedure btn_saveClick(Sender: TObject);
 
     procedure TreeviewRightClick(Sender: TObject);
     
-    procedure ShowImage(); 
+    procedure ShowImage();
     procedure ClearImage();
-    procedure refreshDir();
     procedure DeleteImage(i:Integer);
     procedure initDirectory();
     procedure initControl();
     procedure initConfig();
 
-    procedure DeleteDir(sDirectory: String);
     procedure ScrollBox1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure N1Click(Sender: TObject);
     procedure SnapClick(Sender: TObject);
-    procedure ShellTreeView1AddFolder(Sender: TObject;
-      AFolder: TShellFolder; var CanAdd: Boolean);
-    procedure ShellTreeView1Click(Sender: TObject);
     procedure scrlbx_picMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure scrlbx_picClick(Sender: TObject);
@@ -136,6 +128,19 @@ begin
         DocPanel[i].Parent:=ScrollBox1;
         DocPanel[i].Visible:=True;
         DocPanel[i].Width:=280;
+        
+        //初始化按钮
+        if(DocPanel[i].Hint='') then
+        begin            
+          if(ini.ReadString('Documents',list[i],'n')='n') then
+          begin
+            DocPanel[i].Hint:='1';
+          else
+          begin
+            DocPanel[i].Hint:=ini.ReadString('Documents',list[i],'n');
+          end;
+        end;
+
 
         DocPanelTitle[i]:=TLabel.Create(self);
         DocPanelTitle[i].Parent:=DocPanel[i];
@@ -147,12 +152,21 @@ begin
         DocPanelTitle[i].left:=DocPanel[i].left+5;
 
         //初始化按钮
-        SnapButtonCount:=StrToInt(ini.ReadString('Documents',list[i],'0'));
-        if(SnapButtonCount>0) then
+        if(ini.ReadString('Documents',list[i],'n')='n') and (DocPanel[i].Hint='1') then
         begin
-
-          for j:=1 to SnapButtonCount do
-          begin                        
+            SnapButton[1]:=TButton.Create(self);
+            SnapButton[1].Parent:=DocPanel[i];
+            SnapButton[1].Visible:=True;
+            SnapButton[1].Width:=50;
+            SnapButton[1].height:=50;
+            SnapButton[1].Caption:=IntToStr(j);
+            SnapButton[1].OnClick:=SnapClick;
+            SnapButton[1].Hint:='next';
+        end
+        else
+        begin
+          for j:=1 to StrToInt(SnapButtonCount) do
+          begin
               SnapButton[j]:=TButton.Create(self);
               SnapButton[j].Parent:=DocPanel[i];
               SnapButton[j].Visible:=True;
@@ -160,6 +174,7 @@ begin
               SnapButton[j].height:=50;
               SnapButton[j].Caption:=IntToStr(j);
               SnapButton[j].OnClick:=SnapClick;
+              
               //判断按钮位置，5个换行
               if(j>=1) and (j<=5) then
               begin
@@ -343,7 +358,7 @@ var
       ImgName[i].Font.Color :=clBlack;
       ImgName[i].Width:=100;
       //动态创建ImgName,用来存放图片名
-      Path :=ShellTreeView1.Path+'\'+Filelist.Strings[i-1];
+      //Path :=ShellTreeView1.Path+'\'+Filelist.Strings[i-1];
       //设置文件路径
 
       Image[i].Picture.LoadFromFile(Path);
@@ -497,34 +512,6 @@ end;
 
 
 
-function MakeFileNameUnique(const FileName:string;const iUnique:integer):string;
-begin
-    Result:=ChangeFileExt(FileName,'')+'-'+IntToStr(iUnique)+ExtractFileExt(FileName);
-end;
-function GetUniqueFileName(const FileName:string):string;
-var
-   N:integer;
-begin
-   Result:=FileName;
-   //if not FileExists(Result) then
-
-   //给定的文件不存在，则表示该文件名可以使用
-   //   exit;
-
-   N:=1;
-   //如果FileName.Ext存在，则编码为FileName(Index).Ext
-   //如 TestFile.txt.bak存在，就测试 TestFile.txt(1).bak
-   //直到TestFile.txt(N).bak不存在为止
-
-   Result:=MakeFileNameUnique(FileName,N);
-   while FileExists(Result) do
-   begin
-      inc(N);
-      Result:=MakeFileNameUnique(FileName,N);
-   end;
-end;
-
-
 
 
 
@@ -551,23 +538,6 @@ begin
   ClearImage;
 end;
 
-procedure TVideoForm.N1Click(Sender: TObject);
-var
-  projectName:string;
-begin
-  projectName:=InputBox( '输入项目名称','项目名称','');
-  if trim(projectName)<>'' then
-  begin
-     
-    if not DirectoryExists(ShellTreeView1.Path+'\'+projectName) then
-    begin
-       CreateDir(ShellTreeView1.Path+'\'+projectName);
-    end;
-    ShellTreeView1.Refresh(ShellTreeView1.Selected);
-    ShellTreeView1.Selected.Expand(true);
-
-  end;
-end;
 
 
 
@@ -599,7 +569,7 @@ begin
     end;
     }
 
-      savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';    
+      //savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
       //ShowMessage(savejpgname);
       //保存捕捉的图片
       jp := TJPEGImage.Create;
@@ -616,8 +586,10 @@ begin
       //ShowMessage(IntToStr(nodeID));
       //ShowMessage(IntToStr(Shelltreeview1.Selected.Index));
       //ShellTreeView1.Refresh(ShellTreeView1.Selected);
-      
-      refreshDir;
+      if(btn.Hint='next') then
+      begin
+
+      end;
       ShowImage;
 
       
@@ -637,36 +609,6 @@ begin
     }
 end;
 
-procedure TVideoForm.ShellTreeView1Click(Sender: TObject);
-begin
-  //不再从treeview选取文件
-  {
-  if ShellTreeView1.SelectedFolder.IsFolder then
-  begin
-      imgPreview.Visible:=false;
-      VideoWindow.Visible:=True;
-  end
-  else
-  begin
-      imgPreview.Visible:=True;
-      VideoWindow.Visible:=false;
-
-      
-      imgPreview.Stretch :=True;
-      imgPreview.Picture.LoadFromFile(ShellTreeView1.Path);
-      if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
-      imgPreview.Stretch:=False;
-
-
-  end;
-    //ShowMessage(ShellTreeView1.Path);
-    }
-    StatusBar1.SimpleText:='当前选择项目：'+ShellTreeView1.Selected.Text;
-    
-  //刷新目录文件列表
-  refreshDir;
-  ShowImage;
-end;
 
 procedure TVideoForm.scrlbx_picMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);   
@@ -683,7 +625,7 @@ begin
     if((Sender =Image[ImgPos]) or (Sender = imgName[ImgPos])) then
     begin
       NamPos:= ImgPos;
-      path1:= ShellTreeView1.Path+'\'+FileList.strings[NamPos-1];
+      //path1:= ShellTreeView1.Path+'\'+FileList.strings[NamPos-1];
       ScrollBox1.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
     end;
 
@@ -698,7 +640,7 @@ begin
     imgPreview.Visible:=True;
     VideoWindow.Visible:=false;
 
-    path1:=ShellTreeView1.Path+'\'+ Filelist.Strings[NamPos-1];
+    //path1:=ShellTreeView1.Path+'\'+ Filelist.Strings[NamPos-1];
     imgPreview.Stretch :=True;
     imgPreview.Picture.LoadFromFile(path1);
     if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
@@ -728,7 +670,7 @@ begin
   if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
   begin
     path1:=Filelist.Strings[NamPos-1];
-    DeleteFile(ShellTreeView1.path+'\'+path1);
+    //DeleteFile(ShellTreeView1.path+'\'+path1);
     DeleteImage(NamPos);
     ShowImage;
   end;
@@ -807,9 +749,32 @@ begin
       end;
 end;
 
-procedure TVideoForm.TreeviewRightClick(Sender: TObject); 
+
+function GetTreeviewNodeDir(const t:TTreeview):string;
 var
-  projectName:string; 
+  dir:string;
+  Node : TTreeNode;
+begin
+  dir:='';
+  Node:=t.Selected;
+  while Node.Level>0 do
+  begin
+   dir:=dir+'\'+Node.Text;
+   Node:=Node.Parent;
+  end;
+  if(Node.Level=0) then
+  begin
+   dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
+   Node:=Node.Parent;
+  end;
+  Result:=dir;
+
+end;
+
+
+procedure TVideoForm.TreeviewRightClick(Sender: TObject);
+var
+  projectName:string;
     Node : TTreeNode;
     menuItem:TMenuItem;
 begin
@@ -821,30 +786,23 @@ begin
       begin
          if not DirectoryExists(Document+'\'+projectName) then
           begin
-             CreateDir(Document+projectName);
-          end;
-        end
-        else
-         Node:=TreeView1.Selected;
-         while Node.Level>0 do
-         begin
-           projectName:=Node.Text+'\'+projectName;
-           Node:=Node.Parent;
-         end;
-         if(Node.Level=0) then
-         begin                        
-           projectName:=Node.Text+'\'+projectName;
-           Node:=Node.Parent;
-         end;
-         if not DirectoryExists(Document+'\'+projectName) then
-          begin
              CreateDir(Document+'\'+projectName);
           end;
+      end
+      else
+      begin
+         if not DirectoryExists(GetTreeviewNodeDir(TreeView1)+'\'+projectName) then
+          begin
+             CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
+          end;
+      end;
       TreeView1.Items.Clear();
       DirToTreeView(TreeView1,Document,nil,false);
       TreeView1.FullExpand;
   end;
 
 end;
+
+
 
 end.

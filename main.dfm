@@ -1,6 +1,6 @@
 object VideoForm: TVideoForm
-  Left = 501
-  Top = 242
+  Left = 160
+  Top = 219
   Width = 1219
   Height = 744
   Caption = #25991#26723#24555#36895#25195#25551
@@ -227,7 +227,6 @@ object VideoForm: TVideoForm
       Top = 0
       Width = 249
       Height = 465
-      AutoExpand = True
       Indent = 19
       ReadOnly = True
       TabOrder = 0
@@ -301,7 +300,6 @@ object VideoForm: TVideoForm
     Top = 288
     object N1: TMenuItem
       Caption = #26032#24314#39033#30446
-      OnClick = N1Click
     end
   end
   object PopupMenu2: TPopupMenu
