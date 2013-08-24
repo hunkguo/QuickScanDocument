@@ -18,7 +18,7 @@ type
     Panel1: TPanel;
     Panel2: TPanel;
     Panel3: TPanel;
-    ScrollBox1: TScrollBox;
+    scbMain: TScrollBox;
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
     imgPreview: TImage;
@@ -29,7 +29,7 @@ type
     TreeView1: TTreeView;
     PopupMenu3: TPopupMenu;
 
-    procedure FormCreate(Sender: TObject);
+    procedure FormCreate(Sender: TObject);  
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 
     procedure TreeviewRightClick(Sender: TObject);
@@ -40,10 +40,13 @@ type
     procedure initDirectory();
     procedure initControl();
     procedure initConfig();
+    procedure SetButtonPosition(Buttons:array of TButton);
 
     procedure ScrollBox1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure SnapClick(Sender: TObject);
+    procedure SnapNextClick(Sender: TObject);
+
     procedure scrlbx_picMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure scrlbx_picClick(Sender: TObject);
@@ -55,6 +58,10 @@ type
   Boolean);
     procedure TreeView1MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
+    procedure FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
  
   private
     { D閏larations priv閑s }
@@ -82,12 +89,19 @@ var
 
   Document:string;
 
-  DocPanel :array[0..100] of TPanel;  
-  DocPanelTitle :array[0..100] of TLabel;
-  SnapButton :array[0..500] of TButton;
+
+  //动态生成控件部分
+  DocumentsTypeName :array of string;     //读取配置文件中文档类型部分 名称
+  DocumentsTypeNum :array of string;     //读取配置文件中文档类型部分 页数
+  DocPanel :array of TPanel;              //一种文档类型一个Panel
+  DocTitle :array of TLabel;              //文档的标题
+  Docscb :array of TScrollBox;      //文档的扫描按钮容器，可以滚动
+  DocBut :array of array of TButton;   //定义二维数组，存放button
 
   //读取配置文件
   NodeName :array[0..500] of string;
+  Connector:string;   //文件命名连接符
+
 
 
 implementation
@@ -98,139 +112,192 @@ uses preview;
 procedure TVideoForm.initConfig();
 var
   ini:TInifile;
-  DirectoryLevel:TStringList;
+  DirectoryLevel,docs:TStringList;
   i:Integer;
 begin
       DirectoryLevel := TStringList.Create;
       ini:=TInifile.Create('./Config/Default.ini');
-      ini.ReadSection('Directory',DirectoryLevel); 
+      ini.ReadSection('Directory',DirectoryLevel);
       for i:=0 to DirectoryLevel.Count-1 do
       begin
         NodeName[i]:=ini.ReadString('Directory',DirectoryLevel[i],'');
       end;
+                                         
+      docs := TStringList.Create;
+      ini.ReadSection('Documents',docs);
+      SetLength(DocumentsTypeName,docs.Count);
+      SetLength(DocumentsTypeNum,docs.Count);
+      for i:=0 to docs.Count-1 do
+      begin
+        DocumentsTypeNum[i]:=ini.ReadString('Documents',docs[i],'');
+        DocumentsTypeName[i]:=docs[i];
+      end;
+
+
+      Connector:=ini.ReadString('Connector','symbol','-');
 end;
 
 procedure TVideoForm.initControl();
 var
   ini:TInifile;
-  list:TStringList;
-  i,SnapButtonCount:integer;
-  j,k:Integer;
-
+  list:array of string;
+  i:Integer;
+  SnapButtonCount:string;
+  j:Integer;
+  row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
-      ini:=TInifile.Create('./Config/Default.ini');
-      list:=TStringlist.Create;
-      ini.ReadSection('Documents',list);
-      for i:=0 to list.Count-1 do
+      for i:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
       begin
-        //初始化按钮的容器panel
-        DocPanel[i]:=TPanel.Create(self);
-        DocPanel[i].Parent:=ScrollBox1;
-        DocPanel[i].Visible:=True;
-        DocPanel[i].Width:=280;
-        
-        //初始化按钮
-        if(DocPanel[i].Hint='') then
-        begin            
-          if(ini.ReadString('Documents',list[i],'n')='n') then
+          //初始化文档的容器Panel
+          SetLength(DocPanel,Length(DocumentsTypeName));
+          DocPanel[i]:=TPanel.Create(self);
+          DocPanel[i].Parent:=scbMain;
+          DocPanel[i].Visible:=True;
+          DocPanel[i].Width:=275;
+          DocPanel[i].Height:=60;       //默认高度，后期需根据按钮数量调整
+          DocPanel[i].BevelInner:=bvNone;
+          DocPanel[i].BevelOuter:=bvNone;
+
+          //初始化文档标题
+          SetLength(DocTitle,Length(DocumentsTypeName));
+          DocTitle[i]:=TLabel.Create(self);
+          DocTitle[i].Parent:=DocPanel[i];
+          DocTitle[i].Visible:=True;
+          DocTitle[i].Width:=200;
+          DocTitle[i].Height:=20;
+          DocTitle[i].Caption:=DocumentsTypeName[i];
+          DocTitle[i].Top:=DocPanel[i].Top+5;
+          DocTitle[i].left:=DocPanel[i].Left+5;
+
+           //初始化按钮滚动框
+          SetLength(Docscb,Length(DocumentsTypeName));
+          Docscb[i]:=TScrollBox.Create(self);
+          Docscb[i].Parent:=DocPanel[i];
+          Docscb[i].Visible:=True;
+          Docscb[i].Width:=275;
+          Docscb[i].Height:=120;
+          Docscb[i].Top:=DocTitle[i].Top+25;
+          Docscb[i].left:=DocTitle[i].Left+3;
+          Docscb[i].BorderStyle:=bsNone;
+
+
+
+          //添加按钮          
+          SetLength(DocBut,Length(DocumentsTypeNum));
+          //ShowMessage(IntToStr(Low(DocBut)));
+          //ShowMessage(IntToStr(High(DocBut)));
+          if(DocumentsTypeNum[i]='n')then
           begin
-            DocPanel[i].Hint:='1';
+            SetLength(DocBut[i],1);
+            DocBut[i][0]:=TButton.Create(self);
+            DocBut[i][0].Parent:=Docscb[i];
+            DocBut[i][0].Visible:=True;
+            DocBut[i][0].Width:=50;
+            DocBut[i][0].Height:=50;
+            DocBut[i][0].Caption:='Scan';
+            DocBut[i][0].Tag:=i;
+            DocBut[i][0].Hint:='new';
+            DocBut[i][0].OnClick:=SnapNextClick;
+            //设置按钮位置
+            SetButtonPosition(DocBut[i]);
+            end
+            else
+            for  j:=0 to  StrToInt(DocumentsTypeNum[i]) do
+            begin
+              SetLength(DocBut[i],j+1);
+              DocBut[i][j]:=TButton.Create(self);
+              DocBut[i][j].Parent:=Docscb[i];
+              DocBut[i][j].Visible:=True;
+              DocBut[i][j].Width:=50;
+              DocBut[i][j].Height:=50;
+              DocBut[i][j].Caption:=IntToStr(j+1);
+              DocBut[i][j].Tag:=i;
+              DocBut[i][j].OnClick:=SnapClick;
+
+                  
+              //设置按钮位置
+              SetButtonPosition(DocBut[i]);
+            end;
+            
+
+          if(i=0) then
+          begin
+              DocPanel[i].Top:=scbMain.Top+15;
+              DocPanel[i].left:=scbMain.left;
+          end
           else
           begin
-            DocPanel[i].Hint:=ini.ReadString('Documents',list[i],'n');
+              DocPanel[i].Top:=DocPanel[i-1].Top+DocPanel[i-1].Height;
+              DocPanel[i].left:=DocPanel[i-1].left;
           end;
-        end;
+
+          
+          butCount:=High(DocBut[i]);
+          row:=(butCount div 5)+1;
+          if(row=0) then
+          begin
+             ScbHeigh:=55;
+             PanelHeigh:=90;
+          end
+          else
+          begin
+            ScbHeigh:=50+row*55;
+            PanelHeigh:=90+row*55;
+          end;
+          DocPanel[i].Height:=PanelHeigh;
+          Docscb[i].Height:=ScbHeigh;
+
+      end;
 
 
-        DocPanelTitle[i]:=TLabel.Create(self);
-        DocPanelTitle[i].Parent:=DocPanel[i];
-        DocPanelTitle[i].Visible:=True;
-        DocPanelTitle[i].Width:=280;
-        DocPanelTitle[i].Height:=10;
-        DocPanelTitle[i].Caption:=list[i];
-        DocPanelTitle[i].Top:=DocPanel[i].Top+5;
-        DocPanelTitle[i].left:=DocPanel[i].left+5;
 
-        //初始化按钮
-        if(ini.ReadString('Documents',list[i],'n')='n') and (DocPanel[i].Hint='1') then
+      end;
+procedure TVideoForm.SetButtonPosition(Buttons:array of TButton);
+var
+  i,row,col,butCount,PanelHeigh,ScbHeigh:Integer;
+begin
+      for  i:=Low(Buttons) to  High(Buttons) do
+      begin
+      //显示图片名，保证图片名 居中
+      //showmessage(inttostr(High(Buttons)));
+      //mod取余 得到 属于哪列，主要区别第一列
+      //div 整除，得到第几行
+      row:=i div 5;
+      col:=i mod 5;
+      
+        if(row=0) then
         begin
-            SnapButton[1]:=TButton.Create(self);
-            SnapButton[1].Parent:=DocPanel[i];
-            SnapButton[1].Visible:=True;
-            SnapButton[1].Width:=50;
-            SnapButton[1].height:=50;
-            SnapButton[1].Caption:=IntToStr(j);
-            SnapButton[1].OnClick:=SnapClick;
-            SnapButton[1].Hint:='next';
+          if(col=0) then
+          begin
+            Buttons[i].Left:=0;
+            //ShowMessage(IntToStr(Buttons[i].Parent.top));
+            Buttons[i].top:=0;
+          end
+          else
+          begin
+            Buttons[i].Left:=Buttons[i-1].Left+53;
+            Buttons[i].top:=Buttons[i-1].top;
+          end;
         end
         else
         begin
-          for j:=1 to StrToInt(SnapButtonCount) do
+          if(col=0) then
           begin
-              SnapButton[j]:=TButton.Create(self);
-              SnapButton[j].Parent:=DocPanel[i];
-              SnapButton[j].Visible:=True;
-              SnapButton[j].Width:=50;
-              SnapButton[j].height:=50;
-              SnapButton[j].Caption:=IntToStr(j);
-              SnapButton[j].OnClick:=SnapClick;
-              
-              //判断按钮位置，5个换行
-              if(j>=1) and (j<=5) then
-              begin
-                if(j=1) then
-                begin
-                  SnapButton[j].Top:=25;
-                  SnapButton[j].Left :=5;
-                end;
-                if(j>=2) and (j<=5) then
-                begin
-                  SnapButton[j].Top:=SnapButton[j-1].Top;
-                  SnapButton[j].Left :=SnapButton[j-1].left+55;
-                end;
-              end
-              else
-              begin
-                k:=Trunc(j/5);           
-                if((j mod (k*5))=1) then
-                begin
-                  if k=1 then
-                  begin
-                    SnapButton[j].Top:=25+50*k+5;
-                    SnapButton[j].Left:=5;
-                  end
-                  else
-                  begin
-                    SnapButton[j].Top:=25+50*k+5*k;
-                    SnapButton[j].Left:=5;
-                    //SnapButton[j].Caption:= IntToStr(SnapButton[j].Top +SnapButton[j].Left);
-                  end;
-                end
-                else
-                begin
-                  SnapButton[j].Top:=SnapButton[j-1].Top;
-                  SnapButton[j].Left:=SnapButton[j-1].Left+55;
-                end;
-              end;
-
+            Buttons[i].Left:=0;
+            Buttons[i].top:=(row)*55;
+          end
+          else
+          begin
+            Buttons[i].Left:=Buttons[i-1].Left+53;
+            Buttons[i].top:=Buttons[i-1].top;
           end;
-        end;
-        //初始化panel高度，根据按钮数量 
-        DocPanel[i].Height:=35+ ((Trunc(SnapButtonCount/5)+1)*50)+(Trunc(SnapButtonCount/5))*5; 
-        if(i=0) then
-        begin
-
-            DocPanel[i].Top:=ScrollBox1.top;
-            DocPanel[i].Left:=ScrollBox1.Left;
-            //DocPanel[i].Height:=35+ ((Trunc(SnapButtonCount/5)+1)*50);
-        end;
-        if(i>0) then
-        begin
-            DocPanel[i].Top:=DocPanel[i-1].top+DocPanel[i-1].Height+15;
-            DocPanel[i].Left:=DocPanel[i-1].Left;
 
         end;
+          //Buttons[i].Caption:='第'+inttostr(row)+'行,第'+inttostr(col)+'列';
       end;
+
+
+
 
 end;
 procedure TVideoForm.initDirectory;
@@ -295,38 +362,344 @@ begin
     end;
 end;
 
-procedure TVideoForm.DeleteImage(i:Integer);
+
+
+procedure TVideoForm.FormCreate(Sender: TObject);
+var
+  i: integer;
+  Device: TMenuItem;
 begin
-  if i>=1 then
-      if Assigned(Image[i]) then
-      begin
-        Image[i].Free;
-        Image[i]:=nil;
-      end;
-      if Assigned(ImgName[i]) then
-      begin
-        ImgName[i].Free;
-        ImgName[i]:=nil;
-      end;
-      if Assigned(ImgNameBak[i]) then
-      begin
-        ImgNameBak[i].Free;
-        ImgNameBak[i]:=nil;
-      end;
-      if Assigned(BackGroud[i]) then
-      begin
-        BackGroud[i].Free;
-        BackGroud[i]:=nil;
-      end;
-      Filelist.Delete(i-1);
+  SysDev:= TSysDevEnum.Create(CLSID_VideoInputDeviceCategory);
+  if SysDev.CountFilters > 0 then
+  begin   
+    for i := 0 to SysDev.CountFilters - 1 do
+    begin
+      Device := TMenuItem.Create(Devices);
+      Device.Caption := SysDev.Filters[i].FriendlyName;
+      Device.Tag := i;
+      Device.OnClick := OnSelectDevice;
+      Devices.Add(Device);
+    end;
+    FilterGraph.ClearGraph;
+    FilterGraph.Active := false;
+    Filter.BaseFilter.Moniker := SysDev.GetMoniker(SysDev.CountFilters - 1);
+    FilterGraph.Active := true;
+    with FilterGraph as ICaptureGraphBuilder2 do
+      RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
+    FilterGraph.Play;
+  end
+  else
+  begin
+    ShowMessage('未找到可用设备，程序将退出！');
+    ExitProcess(0);
+    Application.Terminate;
+  end;
+
+    
+
+
+
+
+
+
+  Document:=ExtractFilePath(Paramstr(0)) +'Document';
+
+  //创建Document目录
+  if not DirectoryExists(Document) then
+  begin
+     CreateDir(Document);
+  end;
+                      
+  //初始化配置
+  initConfig();   
+  //初始化控件，从default.ini文件读取配置
+  initControl();
+  
+  //初始化目录，从default.ini文件读取配置
+  initDirectory();
+
+
+
+  DirToTreeView(TreeView1,Document,nil,false);
+  TreeView1.FullExpand;
+
+
+
+
 
 
 end;
 
+procedure TVideoForm.OnSelectDevice(sender: TObject);
+begin
+  FilterGraph.ClearGraph;
+  FilterGraph.Active := false;
+  Filter.BaseFilter.Moniker := SysDev.GetMoniker(TMenuItem(Sender).tag);
+  FilterGraph.Active := true;
+  with FilterGraph as ICaptureGraphBuilder2 do
+    RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
+  FilterGraph.Play;
+end;
+
+procedure TVideoForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  SysDev.Free;
+  FilterGraph.ClearGraph;
+  FilterGraph.Active := false;
+end;
+
+procedure TVideoForm.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  Filelist.Free;
+  ClearImage;
+end;
+
+
+
+
+
+
+
+procedure TVideoForm.imgPreviewDblClick(Sender: TObject);
+begin
+  imgPreview.Visible:=False;
+  VideoWindow.Visible:=True;
+end;
+
+procedure TVideoForm.imgPreviewClick(Sender: TObject);
+begin
+
+  imgPreview.Visible:=False;
+  VideoWindow.Visible:=True;
+end;
+
+
+//读取目录，初始化treeview
+procedure TVideoForm.DirToTreeView(Tree: TTreeView; Directory: string; Root: TTreeNode; IncludeFiles:
+  Boolean);
+var
+  SearchRec         : TSearchRec;
+  ItemTemp          : TTreeNode;
+begin
+  with Tree.Items do
+  try
+    BeginUpdate;
+    if Directory[Length(Directory)] <> '\' then Directory := Directory + '\';
+    if FindFirst(Directory + '*.*', faDirectory, SearchRec) = 0 then
+    begin
+      repeat
+        if (SearchRec.Attr and faDirectory = faDirectory) and (SearchRec.Name[1] <> '.') then
+        begin
+          if (SearchRec.Attr and faDirectory > 0) then
+            Root := AddChild(Root, SearchRec.Name);
+          ItemTemp := Root.Parent;
+          DirToTreeView(Tree, Directory + SearchRec.Name, Root, IncludeFiles);
+          Root := ItemTemp;
+        end
+        else if IncludeFiles then
+          if SearchRec.Name[1] <> '.' then
+            AddChild(Root, SearchRec.Name);
+      until FindNext(SearchRec) <> 0;
+      FindClose(SearchRec);
+    end;
+  finally
+    EndUpdate;
+  end;
+end;
+
+
+
+
+function GetTreeviewNodeDir(const t:TTreeview):string;
+var
+  dir:string;
+  Node : TTreeNode;
+begin
+  dir:='';
+  Node:=t.Selected;
+  while Node.Level>0 do
+  begin
+   dir:='\'+Node.Text+'\'+dir;
+   Node:=Node.Parent;
+  end;
+  if(Node.Level=0) then
+  begin
+   dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
+   Node:=Node.Parent;
+  end;
+  Result:=dir;
+
+end;
+
+ 
+procedure TVideoForm.TreeView1MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+  var
+    Node : TTreeNode;
+    cursorPos:TPoint;
+    vlItem: TMenuItem;
+    i:Integer;
+begin
+  if Button = mbLeft then
+  begin           
+      GetCursorPos(cursorPos);
+      if  treeView1.GetNodeAt(x,y)<>nil then
+      begin          
+        ShowImage();
+      end;
+  end;
+
+
+  if Button = mbRight then
+  begin
+      GetCursorPos(cursorPos);
+      vlItem := TMenuItem.Create(Self);
+      vlItem.OnClick:=TreeviewRightClick;
+
+      if  treeView1.GetNodeAt(x,y)<>nil then
+      begin
+
+             Node:=TreeView1.GetNodeAt(x,y);
+             Node.Selected:=true;
+               if( Node.Level>=0) then
+               begin
+                 if(NodeName[Node.Level+1]<>'' )then
+                 begin
+                   vlItem.Caption := '新建'+NodeName[Node.Level+1];
+                   vlItem.Hint:=IntToStr(Node.Level+1);
+                 end
+                 else
+                 begin                        
+                   vlItem.Caption := '新建';
+                   vlItem.Hint:=IntToStr(Node.Level+1);
+                 end;
+               end;
+               //ShowMessage(IntToStr(Node.Level));
+               //ShowMessage(  NodeName[Node.Level+1]);
+      end
+      else
+      begin
+          vlItem.Caption := '新建'+NodeName[0];
+          vlItem.Hint:=IntToStr(0);
+      end;
+      PopupMenu3.Items.Clear;
+
+      popupmenu3.Items.Add(vlItem);
+      if(vlItem.Caption<>'') then
+        popupmenu3.Popup(cursorPos.X, cursorPos.Y);
+      end;
+end;
+
+
+procedure TVideoForm.TreeviewRightClick(Sender: TObject);
+var
+  projectName:string;
+    Node : TTreeNode;
+    menuItem:TMenuItem;
+begin
+  projectName:=InputBox( '输入项目名称','项目名称','');
+  if trim(projectName)<>'' then
+  begin
+     menuItem:=TMenuItem(Sender);
+      if(menuItem.Hint='0')then
+      begin
+         if not DirectoryExists(Document+'\'+projectName) then
+          begin
+             CreateDir(Document+'\'+projectName);
+          end;
+      end
+      else
+      begin
+         if not DirectoryExists(GetTreeviewNodeDir(TreeView1)+'\'+projectName) then
+          begin
+             CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
+          end;
+      end;
+      TreeView1.Items.Clear();
+      DirToTreeView(TreeView1,Document,nil,false);
+      TreeView1.FullExpand;
+  end;
+
+end;
+
+
+procedure TVideoForm.scrlbx_picClick(Sender: TObject); 
+var
+  path1:string;
+begin        
+  if((Sender is TImage)or (Sender is TLabel)) then
+  begin
+    imgPreview.Visible:=True;
+    VideoWindow.Visible:=false;
+
+
+    path1:=GetTreeviewNodeDir(TreeView1)+'\'+ Filelist.Strings[NamPos-1];
+    imgPreview.Stretch :=True;
+    imgPreview.Picture.LoadFromFile(path1);
+    if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
+    imgPreview.Stretch:=False;
+    //如果图片小于image1 的大小则以图片的实际大小显示
+  end;
+end;
+
+
+
+procedure TVideoForm.SnapClick(Sender: TObject);
+var
+  i:Integer;
+  btn:TButton;
+  labTitle:TLabel;
+  jp: TJPEGImage;
+  Bitmap : TBitmap;
+  savejpgname :string;
+  node:TTreeNode;
+begin
+  if(Sender is TButton) then
+  begin
+    btn:=TButton(Sender);
+    labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
+
+      savejpgname:=GetTreeviewNodeDir(TreeView1)+'\'+labTitle.Caption+Connector+btn.Caption+'.jpg';
+      //ShowMessage(savejpgname);
+      //保存捕捉的图片
+      jp := TJPEGImage.Create;
+      Bitmap := TBitmap.Create;
+      SampleGrabber.GetBitmap(Bitmap);
+      jp.CompressionQuality := 40;
+      jp.Compress ;
+      jp.Assign(Bitmap);
+      Bitmap.Free;
+      jp.SaveToFile(savejpgname);
+      ShowImage;
+      
+  end;
+
+end;
+
+
 procedure TVideoForm.ShowImage;
 var
-  i,j,k:Integer;
+  i,j,k:Integer;  
+ SearchRec:TSearchRec;
+ found:integer;
   begin
+    //获取当前选择节点，显示其中图片文件
+    if not Assigned(Filelist) then
+    begin
+      Filelist := TStringList.Create;
+    end;
+    Filelist.Clear();
+    found:=FindFirst(GetTreeviewNodeDir(TreeView1)+'*.jpg',faAnyFile,SearchRec);
+     while    found=0    do
+       begin
+           if (SearchRec.Name<>'.')  and (SearchRec.Name<>'..')
+                 and    (SearchRec.Attr<>faDirectory)    then
+               Filelist.Add(SearchRec.Name);
+           found:=FindNext(SearchRec);
+       end;
+     FindClose(SearchRec);
+
+
     ClearImage();
     imgcount:=Filelist.count;
     for i:=1 to Imgcount do
@@ -358,8 +731,9 @@ var
       ImgName[i].Font.Color :=clBlack;
       ImgName[i].Width:=100;
       //动态创建ImgName,用来存放图片名
-      //Path :=ShellTreeView1.Path+'\'+Filelist.Strings[i-1];
+      Path :=GetTreeviewNodeDir(TreeView1)+'\'+Filelist.Strings[i-1];
       //设置文件路径
+
 
       Image[i].Picture.LoadFromFile(Path);
       ImgNameBak[i].OnClick:=scrlbx_pic.OnClick;
@@ -385,6 +759,7 @@ var
           Image[i].Top:=3;
           Image[i].Left:=3;
           Image[i].Visible:=True;
+
 
         end;
         if(i>=2) and (i<=10) then
@@ -425,97 +800,34 @@ var
     end;
   end;
 
-procedure TVideoForm.FormCreate(Sender: TObject);
-var
-  i: integer;
-  Device: TMenuItem;
+
+procedure TVideoForm.DeleteImage(i:Integer);
 begin
-  SysDev:= TSysDevEnum.Create(CLSID_VideoInputDeviceCategory);
-  if SysDev.CountFilters > 0 then
-  begin   
-    for i := 0 to SysDev.CountFilters - 1 do
-    begin
-      Device := TMenuItem.Create(Devices);
-      Device.Caption := SysDev.Filters[i].FriendlyName;
-      Device.Tag := i;
-      Device.OnClick := OnSelectDevice;
-      Devices.Add(Device);
-    end;
-    FilterGraph.ClearGraph;
-    FilterGraph.Active := false;
-    Filter.BaseFilter.Moniker := SysDev.GetMoniker(SysDev.CountFilters - 1);
-    FilterGraph.Active := true;
-    with FilterGraph as ICaptureGraphBuilder2 do
-      RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
-    FilterGraph.Play;
-  end
-  else
-  begin
-    ShowMessage('未找到可用设备，程序将退出！');
-    ExitProcess(0);
-    Application.Terminate;
-  end;
-
-    
-
-
-  
-
-
-
-  Document:=ExtractFilePath(Paramstr(0)) +'Document';
-
-  //创建Document目录
-  if not DirectoryExists(Document) then
-  begin
-     CreateDir(Document);
-  end;
-
-  //初始化目录，从default.ini文件读取配置
-  initDirectory();
-
-  
-  //初始化控件，从default.ini文件读取配置
-  initControl();
-
-  DirToTreeView(TreeView1,Document,nil,false);
-  TreeView1.FullExpand;
-  //初始化配置
-  initConfig();
-
-
-
-
+  if i>=1 then
+      if Assigned(Image[i]) then
+      begin
+        Image[i].Free;
+        Image[i]:=nil;
+      end;
+      if Assigned(ImgName[i]) then
+      begin
+        ImgName[i].Free;
+        ImgName[i]:=nil;
+      end;
+      if Assigned(ImgNameBak[i]) then
+      begin
+        ImgNameBak[i].Free;
+        ImgNameBak[i]:=nil;
+      end;
+      if Assigned(BackGroud[i]) then
+      begin
+        BackGroud[i].Free;
+        BackGroud[i]:=nil;
+      end;
+      Filelist.Delete(i-1);
 
 
 end;
-
-procedure TVideoForm.OnSelectDevice(sender: TObject);
-begin
-  FilterGraph.ClearGraph;
-  FilterGraph.Active := false;
-  Filter.BaseFilter.Moniker := SysDev.GetMoniker(TMenuItem(Sender).tag);
-  FilterGraph.Active := true;
-  with FilterGraph as ICaptureGraphBuilder2 do
-    RenderStream(@PIN_CATEGORY_PREVIEW, nil, Filter as IBaseFilter, SampleGrabber as IBaseFilter, VideoWindow as IbaseFilter);
-  FilterGraph.Play;
-end;
-
-procedure TVideoForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-begin
-  SysDev.Free;
-  FilterGraph.ClearGraph;
-  FilterGraph.Active := false;
-end;
-
-
-
-
-
-
-
-
-
 
 procedure TVideoForm.ScrollBox1DblClick(Sender: TObject);
 var
@@ -523,7 +835,7 @@ var
 begin
   if((Sender is TImage) or (Sender is TLabel)) then
   begin
-    path1:=Filelist.Strings[NamPos-1];
+    path1:=GetTreeviewNodeDir(TreeView1)+'\'+Filelist.Strings[NamPos-1];
     PreviewForm.Image1.Picture.LoadFromFile(path1);
     VideoForm.Hide;
     PreviewForm.Caption :=path1;
@@ -532,82 +844,7 @@ begin
 
 end;
 
-procedure TVideoForm.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Filelist.Free;
-  ClearImage;
-end;
 
-
-
-
-procedure TVideoForm.SnapClick(Sender: TObject);
-var
-  i:Integer;
-  btn:TButton;
-  palTitle:TPanel;   
-  jp: TJPEGImage;
-  Bitmap : TBitmap;
-  savejpgname :string;
-  node:TTreeNode;
-begin
-  if(Sender is TButton) then
-  begin
-    btn:=TButton(Sender);
-    palTitle:=TPanel(btn.Parent.Controls[0]);
-    //ShowMessage(panel1.Caption);
-    //判断选中的是文件夹还是文件
-    {
-    if ShellTreeView1.SelectedFolder.IsFolder then
-    begin
-        savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
-      end
-      else
-        shelltreeview1.Selected.Parent.Selected := true;
-        savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
-      begin
-    end;
-    }
-
-      //savejpgname:=ShellTreeView1.Path+'\'+palTitle.Caption+'-'+btn.Caption+'.jpg';
-      //ShowMessage(savejpgname);
-      //保存捕捉的图片
-      jp := TJPEGImage.Create;
-      Bitmap := TBitmap.Create;
-      SampleGrabber.GetBitmap(Bitmap);
-      jp.CompressionQuality := 40;
-      jp.Compress ;
-      jp.Assign(Bitmap);
-      Bitmap.Free;
-      jp.SaveToFile(savejpgname);
-
-      //ShellTreeView1.ObjectTypes := [otNonFolders] + ShellTreeView1.ObjectTypes;
-      //ShellTreeView1.Items.Item[nodeID].Selected:=true;
-      //ShowMessage(IntToStr(nodeID));
-      //ShowMessage(IntToStr(Shelltreeview1.Selected.Index));
-      //ShellTreeView1.Refresh(ShellTreeView1.Selected);
-      if(btn.Hint='next') then
-      begin
-
-      end;
-      ShowImage;
-
-      
-  end;
-
-end;
-
-procedure TVideoForm.ShellTreeView1AddFolder(Sender: TObject;
-  AFolder: TShellFolder; var CanAdd: Boolean);
-  var
-    maskExt : string;
-    fileExt : string;
-begin
- { maskExt := ExtractFileExt('*.jpg') ;
-    fileExt := ExtractFileExt(AFolder.DisplayName) ;
-    CanAdd := AFolder.IsFolder OR (CompareText(maskExt,fileExt) = 0) ;
-    }
-end;
 
 
 procedure TVideoForm.scrlbx_picMouseMove(Sender: TObject;
@@ -625,42 +862,12 @@ begin
     if((Sender =Image[ImgPos]) or (Sender = imgName[ImgPos])) then
     begin
       NamPos:= ImgPos;
-      //path1:= ShellTreeView1.Path+'\'+FileList.strings[NamPos-1];
-      ScrollBox1.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
+      path1:= GetTreeviewNodeDir(TreeView1)+'\'+FileList.strings[NamPos-1];
+      scbMain.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
     end;
 
 end;
 
-procedure TVideoForm.scrlbx_picClick(Sender: TObject); 
-var
-  path1:string;
-begin        
-  if((Sender is TImage)or (Sender is TLabel)) then
-  begin
-    imgPreview.Visible:=True;
-    VideoWindow.Visible:=false;
-
-    //path1:=ShellTreeView1.Path+'\'+ Filelist.Strings[NamPos-1];
-    imgPreview.Stretch :=True;
-    imgPreview.Picture.LoadFromFile(path1);
-    if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
-    imgPreview.Stretch:=False;
-    //如果图片小于image1 的大小则以图片的实际大小显示
-  end;
-end;
-
-procedure TVideoForm.imgPreviewDblClick(Sender: TObject);
-begin
-  imgPreview.Visible:=False;
-  VideoWindow.Visible:=True;
-end;
-
-procedure TVideoForm.imgPreviewClick(Sender: TObject);
-begin
-
-  imgPreview.Visible:=False;
-  VideoWindow.Visible:=True;
-end;
 
 procedure TVideoForm.N3Click(Sender: TObject); 
 var
@@ -670,139 +877,112 @@ begin
   if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
   begin
     path1:=Filelist.Strings[NamPos-1];
-    //DeleteFile(ShellTreeView1.path+'\'+path1);
+    DeleteFile(GetTreeviewNodeDir(TreeView1)+'\'+path1);
     DeleteImage(NamPos);
     ShowImage;
   end;
-
 end;
 
-//读取目录，初始化treeview
-procedure TVideoForm.DirToTreeView(Tree: TTreeView; Directory: string; Root: TTreeNode; IncludeFiles:
-  Boolean);
+
+procedure TVideoForm.SnapNextClick(Sender: TObject);
 var
-  SearchRec         : TSearchRec;
-  ItemTemp          : TTreeNode;
-begin
-  with Tree.Items do
-  try
-    BeginUpdate;
-    if Directory[Length(Directory)] <> '\' then Directory := Directory + '\';
-    if FindFirst(Directory + '*.*', faDirectory, SearchRec) = 0 then
-    begin
-      repeat
-        if (SearchRec.Attr and faDirectory = faDirectory) and (SearchRec.Name[1] <> '.') then
-        begin
-          if (SearchRec.Attr and faDirectory > 0) then
-            Root := AddChild(Root, SearchRec.Name);
-          ItemTemp := Root.Parent;
-          DirToTreeView(Tree, Directory + SearchRec.Name, Root, IncludeFiles);
-          Root := ItemTemp;
-        end
-        else if IncludeFiles then
-          if SearchRec.Name[1] <> '.' then
-            AddChild(Root, SearchRec.Name);
-      until FindNext(SearchRec) <> 0;
-      FindClose(SearchRec);
-    end;
-  finally
-    EndUpdate;
-  end;
-end;
-
-procedure TVideoForm.TreeView1MouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-  var
-    Node : TTreeNode;
-    cursorPos:TPoint;
-    vlItem: TMenuItem;
-    i:Integer;
+  i,btnCount:Integer;
+  btn:TButton;
+  labTitle:TLabel;
+  jp: TJPEGImage;
+  Bitmap : TBitmap;
+  savejpgname :string;
+  node:TTreeNode;     
+  row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
 
-  if Button = mbRight then
+  if(Sender is TButton) then
   begin
-      GetCursorPos(cursorPos);
-      vlItem := TMenuItem.Create(Self);
-      vlItem.OnClick:=TreeviewRightClick;
+    btn:=TButton(Sender);
+    //ShowMessage(IntToStr(btn.Tag));
+    i:=btn.Tag;
+    btnCount:=length(DocBut[btn.Tag]);
+    SetLength(DocBut[i],btnCount+1);
+    DocBut[i][btnCount]:=TButton.Create(self);
+    DocBut[i][btnCount].Parent:=Docscb[i];
+    DocBut[i][btnCount].Visible:=True;
+    DocBut[i][btnCount].Width:=50;
+    DocBut[i][btnCount].Height:=50;
+    DocBut[i][btnCount].Caption:=IntToStr(btnCount);
+    DocBut[i][btnCount].Tag:=i;
+    DocBut[i][btnCount].OnClick:=SnapClick;
 
-      if  treeView1.GetNodeAt(x,y)<>nil then
+    SetButtonPosition(DocBut[i]);
+    for i:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
       begin
-
-             Node:=TreeView1.GetNodeAt(x,y);
-             Node.Selected:=true;
-               if( Node.Level>=0) and (NodeName[Node.Level+1]<>'' )then
-               begin
-                 vlItem.Caption := '新建'+NodeName[Node.Level+1];
-                 vlItem.Hint:=IntToStr(Node.Level+1);
-               end;
-      end
-      else
-      begin
-          vlItem.Caption := '新建'+NodeName[0];
-          vlItem.Hint:=IntToStr(0);
-      end;
-      PopupMenu3.Items.Clear;
-
-      popupmenu3.Items.Add(vlItem);
-      if(vlItem.Caption<>'') then
-        popupmenu3.Popup(cursorPos.X, cursorPos.Y);
-      end;
-end;
-
-
-function GetTreeviewNodeDir(const t:TTreeview):string;
-var
-  dir:string;
-  Node : TTreeNode;
-begin
-  dir:='';
-  Node:=t.Selected;
-  while Node.Level>0 do
-  begin
-   dir:=dir+'\'+Node.Text;
-   Node:=Node.Parent;
-  end;
-  if(Node.Level=0) then
-  begin
-   dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
-   Node:=Node.Parent;
-  end;
-  Result:=dir;
-
-end;
-
-
-procedure TVideoForm.TreeviewRightClick(Sender: TObject);
-var
-  projectName:string;
-    Node : TTreeNode;
-    menuItem:TMenuItem;
-begin
-  projectName:=InputBox( '输入项目名称','项目名称','');
-  if trim(projectName)<>'' then
-  begin
-     menuItem:=TMenuItem(Sender);
-      if(menuItem.Hint='0')then
-      begin
-         if not DirectoryExists(Document+'\'+projectName) then
+          if(i=0) then
           begin
-             CreateDir(Document+'\'+projectName);
-          end;
-      end
-      else
-      begin
-         if not DirectoryExists(GetTreeviewNodeDir(TreeView1)+'\'+projectName) then
+              DocPanel[i].Top:=scbMain.Top+15;
+              DocPanel[i].left:=scbMain.left;
+          end
+          else
           begin
-             CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
+              DocPanel[i].Top:=DocPanel[i-1].Top+DocPanel[i-1].Height;
+              DocPanel[i].left:=DocPanel[i-1].left;
+
+
           end;
+    
+          
+          butCount:=High(DocBut[i]);
+          row:=(butCount div 5)+1;
+          if(row=0) then
+          begin
+             ScbHeigh:=55;
+             PanelHeigh:=90;
+          end
+          else
+          begin
+            ScbHeigh:=50+row*55;
+            PanelHeigh:=90+row*55;
+          end;
+          DocPanel[i].Height:=PanelHeigh;
+          Docscb[i].Height:=ScbHeigh;
       end;
-      TreeView1.Items.Clear();
-      DirToTreeView(TreeView1,Document,nil,false);
-      TreeView1.FullExpand;
+
+      //保存图片
+      
+      labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
+
+      savejpgname:=GetTreeviewNodeDir(TreeView1)+'\'+labTitle.Caption+Connector+inttostr(btnCount)+'.jpg';
+      //ShowMessage(savejpgname);
+      //保存捕捉的图片
+      jp := TJPEGImage.Create;
+      Bitmap := TBitmap.Create;
+      SampleGrabber.GetBitmap(Bitmap);
+      jp.CompressionQuality := 40;
+      jp.Compress ;
+      jp.Assign(Bitmap);
+      Bitmap.Free;
+      jp.SaveToFile(savejpgname);
+      ShowImage;
+
+  end;
   end;
 
+
+
+
+
+procedure TVideoForm.FormMouseWheelDown(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  posi:integer;
+begin
+     posi := scbmain.vertScrollBar.Position - 25 ;
+     if scbmain.vertScrollBar.Position < 0 then posi := 0;
+      scbmain.vertScrollBar.Position := posi;
 end;
 
-
+procedure TVideoForm.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
+  MousePos: TPoint; var Handled: Boolean);
+begin     
+       scbmain.vertScrollBar.Position := scbmain.vertScrollBar.Position + 25 ;
+end;
 
 end.

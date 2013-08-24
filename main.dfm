@@ -1,9 +1,9 @@
 object VideoForm: TVideoForm
-  Left = 160
-  Top = 219
+  Left = 344
+  Top = 46
   Width = 1219
-  Height = 744
-  Caption = #25991#26723#24555#36895#25195#25551
+  Height = 732
+  Caption = 'go'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -184,8 +184,9 @@ object VideoForm: TVideoForm
   Menu = MainMenu1
   OldCreateOrder = False
   Position = poScreenCenter
-  OnClose = FormClose
   OnCreate = FormCreate
+  OnMouseWheelDown = FormMouseWheelDown
+  OnMouseWheelUp = FormMouseWheelUp
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
@@ -243,7 +244,7 @@ object VideoForm: TVideoForm
     Ctl3D = True
     ParentCtl3D = False
     TabOrder = 2
-    object ScrollBox1: TScrollBox
+    object scbMain: TScrollBox
       Left = 0
       Top = 0
       Width = 300
@@ -255,7 +256,7 @@ object VideoForm: TVideoForm
   end
   object scrlbx_pic: TScrollBox
     Left = 0
-    Top = 472
+    Top = 464
     Width = 1201
     Height = 185
     TabOrder = 3
@@ -264,8 +265,8 @@ object VideoForm: TVideoForm
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 658
-    Width = 1203
+    Top = 650
+    Width = 1211
     Height = 28
     Panels = <>
   end
