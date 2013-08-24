@@ -520,7 +520,7 @@ begin
   except    
       EndUpdate;
      ShowMessage('读取目录结构,初始化treeview错误');
-  finally
+
   end;
 end;
 
@@ -703,12 +703,32 @@ begin
 
 end;
 
+function SplitString(const source, ch: string): TStringList;
+var
+  temp, t2: string;
+  i: integer;
+begin
+  result := TStringList.Create;
+  temp := source;
+  i := pos(ch, source);
+  while i <> 0 do
+  begin
+    t2 := copy(temp, 0, i - 1);
+    if (t2 <> '') then
+      result.Add(t2);
+    delete(temp, 1, i - 1 + Length(ch));
+    i := pos(ch, temp);
+  end;
+  result.Add(temp);
+end;
 
 procedure TVideoForm.ShowImage;
 var
-  i,j,k:Integer;  
+  i,j,k,docButPos:Integer;  
  SearchRec:TSearchRec;
  found:integer;
+ docPanName,docButName:string;
+ strs:TStringList;
   begin
     //获取当前选择节点，显示其中图片文件
     try
@@ -832,6 +852,47 @@ var
     except
       ShowMessage('调整图片位置发生错误');
     end;
+
+    //读取图片列表，判断所属的panel，如果是动态按钮，添加之
+    for i:=0 to Imgcount-1 do
+    begin
+      strs := SplitString(Filelist[i], connector);
+      docPanName:=Strs[0];
+      docButName:=Strs[1];
+      docButPos:=StrToInt(docButName);
+      //ShowMessage(docPanName+'###########'+docButName);
+      for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
+      begin
+         //如果文件名相同，且控件数目为n,遍历buts
+         if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
+         begin
+            if(Length(DocBut[j])<=docButPos) then
+            begin
+              try
+                {
+                SetLength(DocBut[j],btnCount+1);
+                DocBut[i][btnCount]:=TButton.Create(self);
+                DocBut[i][btnCount].Parent:=Docscb[i];
+                DocBut[i][btnCount].Visible:=True;
+                DocBut[i][btnCount].Width:=50;
+                DocBut[i][btnCount].Height:=50;
+                DocBut[i][btnCount].Caption:=IntToStr(btnCount);
+                DocBut[i][btnCount].Tag:=i;
+                DocBut[i][btnCount].OnClick:=SnapClick;
+                 }
+                SetButtonPosition(DocBut[j]);
+              except
+                ShowMessage('动态添加按钮发生错误');
+              end;
+            end
+            else
+            begin
+              ShowMessage(DocBut[j][docButPos].Caption);
+              //DocBut[j][docButPos].Font.Color:=clRed;
+            end;
+         end;
+      end;
+    end;
   end;
 
 
@@ -898,7 +959,7 @@ begin
   
   if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
   begin
-    tru
+    try
     path1:=Filelist.Strings[NamPos-1];
     DeleteFile(GetTreeviewNodeDir(TreeView1)+'\'+path1);
     DeleteImage(NamPos);
