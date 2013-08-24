@@ -3,8 +3,6 @@ program QuickScanDocument;
 uses
   Forms,
   main in 'main.pas' {VideoForm},
-  preview in 'preview.pas' {PreviewForm},
-  inputProjectName in 'inputProjectName.pas' {DlgInputProjectName},
   wdRunOnce in 'wdRunOnce.pas';
 
 {$R *.res}

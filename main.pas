@@ -42,7 +42,6 @@ type
     procedure initConfig();
     procedure SetButtonPosition(Buttons:array of TButton);
 
-    procedure ScrollBox1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure SnapClick(Sender: TObject);
     procedure SnapNextClick(Sender: TObject);
@@ -106,7 +105,7 @@ var
 
 implementation
 
-uses preview;
+
 
 {$R *.dfm}                       
 procedure TVideoForm.initConfig();
@@ -116,25 +115,31 @@ var
   i:Integer;
 begin
       DirectoryLevel := TStringList.Create;
-      ini:=TInifile.Create('./Config/Default.ini');
-      ini.ReadSection('Directory',DirectoryLevel);
-      for i:=0 to DirectoryLevel.Count-1 do
-      begin
-        NodeName[i]:=ini.ReadString('Directory',DirectoryLevel[i],'');
-      end;
-                                         
-      docs := TStringList.Create;
-      ini.ReadSection('Documents',docs);
-      SetLength(DocumentsTypeName,docs.Count);
-      SetLength(DocumentsTypeNum,docs.Count);
-      for i:=0 to docs.Count-1 do
-      begin
-        DocumentsTypeNum[i]:=ini.ReadString('Documents',docs[i],'');
-        DocumentsTypeName[i]:=docs[i];
-      end;
+      try
 
+        ini:=TInifile.Create('./Config/Default.ini');
+        ini.ReadSection('Directory',DirectoryLevel);
+        for i:=0 to DirectoryLevel.Count-1 do
+        begin
+          NodeName[i]:=ini.ReadString('Directory',DirectoryLevel[i],'');
+        end;
 
-      Connector:=ini.ReadString('Connector','symbol','-');
+        docs := TStringList.Create;
+        ini.ReadSection('Documents',docs);
+        SetLength(DocumentsTypeName,docs.Count);
+        SetLength(DocumentsTypeNum,docs.Count);
+        for i:=0 to docs.Count-1 do
+        begin
+          DocumentsTypeNum[i]:=ini.ReadString('Documents',docs[i],'');
+          DocumentsTypeName[i]:=docs[i];
+        end;
+
+        Connector:=ini.ReadString('Connector','symbol','-');
+      except
+          ShowMessage('配置文件读取错误，程序将退出！');              
+          ExitProcess(0);
+          Application.Terminate;
+      end;
 end;
 
 procedure TVideoForm.initControl();
@@ -146,6 +151,7 @@ var
   j:Integer;
   row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
+      try
       for i:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
       begin
           //初始化文档的容器Panel
@@ -248,6 +254,9 @@ begin
           Docscb[i].Height:=ScbHeigh;
 
       end;
+      except
+          ShowMessage('控件初始化错误');
+      end;
 
 
 
@@ -321,11 +330,10 @@ begin
            CreateDir(Document+allName);
         end;
       end;
-
-  
-  finally
+  except    
     list.free;
     ini.Free;
+    ShowMessage('目录初始化错误');
   end;
 
 
@@ -405,9 +413,13 @@ begin
   Document:=ExtractFilePath(Paramstr(0)) +'Document';
 
   //创建Document目录
+  try
   if not DirectoryExists(Document) then
   begin
      CreateDir(Document);
+  end;
+  except
+    ShowMessage('Document目录初始化错误');
   end;
                       
   //初始化配置
@@ -419,10 +431,12 @@ begin
   initDirectory();
 
 
-
+  try
   DirToTreeView(TreeView1,Document,nil,false);
   TreeView1.FullExpand;
-
+  except
+    ShowMessage('读取目录结构错误');
+  end;
 
 
 
@@ -502,8 +516,11 @@ begin
       until FindNext(SearchRec) <> 0;
       FindClose(SearchRec);
     end;
-  finally
     EndUpdate;
+  except    
+      EndUpdate;
+     ShowMessage('读取目录结构,初始化treeview错误');
+  finally
   end;
 end;
 
@@ -601,6 +618,7 @@ begin
   if trim(projectName)<>'' then
   begin
      menuItem:=TMenuItem(Sender);
+     try
       if(menuItem.Hint='0')then
       begin
          if not DirectoryExists(Document+'\'+projectName) then
@@ -614,6 +632,9 @@ begin
           begin
              CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
           end;
+      end;
+      except
+        ShowMessage('创建项目目录错误');
       end;
       TreeView1.Items.Clear();
       DirToTreeView(TreeView1,Document,nil,false);
@@ -632,12 +653,15 @@ begin
     imgPreview.Visible:=True;
     VideoWindow.Visible:=false;
 
-
+    try
     path1:=GetTreeviewNodeDir(TreeView1)+'\'+ Filelist.Strings[NamPos-1];
     imgPreview.Stretch :=True;
     imgPreview.Picture.LoadFromFile(path1);
     if(imgPreview.Picture.Width<imgPreview.Width) and (imgPreview.Picture.Height<imgPreview.Height) then
     imgPreview.Stretch:=False;
+    except
+      ShowMessage('读取图片错误');
+    end;
     //如果图片小于image1 的大小则以图片的实际大小显示
   end;
 end;
@@ -658,7 +682,7 @@ begin
   begin
     btn:=TButton(Sender);
     labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
-
+      try
       savejpgname:=GetTreeviewNodeDir(TreeView1)+'\'+labTitle.Caption+Connector+btn.Caption+'.jpg';
       //ShowMessage(savejpgname);
       //保存捕捉的图片
@@ -670,6 +694,9 @@ begin
       jp.Assign(Bitmap);
       Bitmap.Free;
       jp.SaveToFile(savejpgname);
+      except
+        ShowMessage('图像捕捉成功，保存失败');
+      end;
       ShowImage;
       
   end;
@@ -684,6 +711,7 @@ var
  found:integer;
   begin
     //获取当前选择节点，显示其中图片文件
+    try
     if not Assigned(Filelist) then
     begin
       Filelist := TStringList.Create;
@@ -698,10 +726,13 @@ var
            found:=FindNext(SearchRec);
        end;
      FindClose(SearchRec);
-
+    except
+      ShowMessage('读取当前项目下的图片失败');
+    end;
 
     ClearImage();
     imgcount:=Filelist.count;
+    try
     for i:=1 to Imgcount do
     begin
       BackGroud[i]:=TPanel.Create(self);
@@ -798,6 +829,9 @@ var
       ImgNameBak[i].Top:=Image[i].Top+101;
       ImgNameBak[i].Left:=1;
     end;
+    except
+      ShowMessage('调整图片位置发生错误');
+    end;
   end;
 
 
@@ -829,21 +863,6 @@ begin
 
 end;
 
-procedure TVideoForm.ScrollBox1DblClick(Sender: TObject);
-var
-  path1:string;
-begin
-  if((Sender is TImage) or (Sender is TLabel)) then
-  begin
-    path1:=GetTreeviewNodeDir(TreeView1)+'\'+Filelist.Strings[NamPos-1];
-    PreviewForm.Image1.Picture.LoadFromFile(path1);
-    VideoForm.Hide;
-    PreviewForm.Caption :=path1;
-    PreviewForm.ShowModal;
-  end;
-
-end;
-
 
 
 
@@ -853,7 +872,7 @@ var
   path1:string;
 begin 
   ImgPos:=0;
-  
+  try
   if not Assigned(Filelist) then
   begin
     Filelist := TStringList.Create;
@@ -865,6 +884,9 @@ begin
       path1:= GetTreeviewNodeDir(TreeView1)+'\'+FileList.strings[NamPos-1];
       scbMain.Hint:='文件名:'+Filelist.strings[nampos-1]+#13+'图像大小:'+ IntToStr(Image[ImgPos].Picture.Width)+'          X'+ IntToStr(Image[ImgPos].Picture.Height)+'像素';
     end;
+  except
+    ShowMessage('读取图片信息失败');
+  end;
 
 end;
 
@@ -876,10 +898,14 @@ begin
   
   if((TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TImage') or (TPopupMenu(TMenuItem(sender).GetParentComponent).PopupComponent.ClassName='TLabel')) then
   begin
+    tru
     path1:=Filelist.Strings[NamPos-1];
     DeleteFile(GetTreeviewNodeDir(TreeView1)+'\'+path1);
     DeleteImage(NamPos);
     ShowImage;
+    except
+      ShowMessage('删除图片发生错误');
+    end;
   end;
 end;
 
@@ -902,6 +928,7 @@ begin
     //ShowMessage(IntToStr(btn.Tag));
     i:=btn.Tag;
     btnCount:=length(DocBut[btn.Tag]);
+    try
     SetLength(DocBut[i],btnCount+1);
     DocBut[i][btnCount]:=TButton.Create(self);
     DocBut[i][btnCount].Parent:=Docscb[i];
@@ -913,6 +940,10 @@ begin
     DocBut[i][btnCount].OnClick:=SnapClick;
 
     SetButtonPosition(DocBut[i]);
+    except
+      ShowMessage('动态添加按钮发生错误');
+    end;
+    try
     for i:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
       begin
           if(i=0) then
@@ -944,11 +975,14 @@ begin
           DocPanel[i].Height:=PanelHeigh;
           Docscb[i].Height:=ScbHeigh;
       end;
+      except
+        ShowMessage('调整按钮位置发生错误');
+      end;
 
       //保存图片
       
       labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
-
+      try
       savejpgname:=GetTreeviewNodeDir(TreeView1)+'\'+labTitle.Caption+Connector+inttostr(btnCount)+'.jpg';
       //ShowMessage(savejpgname);
       //保存捕捉的图片
@@ -961,6 +995,9 @@ begin
       Bitmap.Free;
       jp.SaveToFile(savejpgname);
       ShowImage;
+      except
+        ShowMessage('文件保存错误');
+      end;
 
   end;
   end;

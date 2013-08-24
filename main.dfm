@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 344
-  Top = 46
-  Width = 1219
-  Height = 732
+  Left = 602
+  Top = 142
+  Width = 1218
+  Height = 735
   Caption = 'go'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -265,8 +265,8 @@ object VideoForm: TVideoForm
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 650
-    Width = 1211
+    Top = 649
+    Width = 1202
     Height = 28
     Panels = <>
   end
