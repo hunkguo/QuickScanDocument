@@ -1,6 +1,6 @@
 object VideoForm: TVideoForm
-  Left = 602
-  Top = 142
+  Left = 455
+  Top = 166
   Width = 1218
   Height = 735
   Caption = 'go'

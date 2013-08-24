@@ -208,7 +208,7 @@ begin
             SetButtonPosition(DocBut[i]);
             end
             else
-            for  j:=0 to  StrToInt(DocumentsTypeNum[i]) do
+            for  j:=0 to  StrToInt(DocumentsTypeNum[i])-1 do
             begin
               SetLength(DocBut[i],j+1);
               DocBut[i][j]:=TButton.Create(self);
@@ -724,7 +724,7 @@ end;
 
 procedure TVideoForm.ShowImage;
 var
-  i,j,k,docButPos:Integer;  
+  i,j,k,docButPos,btnCount:Integer;  
  SearchRec:TSearchRec;
  found:integer;
  docPanName,docButName:string;
@@ -866,31 +866,32 @@ var
          //如果文件名相同，且控件数目为n,遍历buts
          if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
          begin
-            if(Length(DocBut[j])<=docButPos) then
+            btnCount:=Length(DocBut[j]);
+            if(btnCount<=docButPos) then
             begin
               try
-                {
                 SetLength(DocBut[j],btnCount+1);
-                DocBut[i][btnCount]:=TButton.Create(self);
-                DocBut[i][btnCount].Parent:=Docscb[i];
-                DocBut[i][btnCount].Visible:=True;
-                DocBut[i][btnCount].Width:=50;
-                DocBut[i][btnCount].Height:=50;
-                DocBut[i][btnCount].Caption:=IntToStr(btnCount);
-                DocBut[i][btnCount].Tag:=i;
-                DocBut[i][btnCount].OnClick:=SnapClick;
-                 }
+                DocBut[j][btnCount]:=TButton.Create(self);
+                DocBut[j][btnCount].Parent:=Docscb[j];
+                DocBut[j][btnCount].Visible:=True;
+                DocBut[j][btnCount].Width:=50;
+                DocBut[j][btnCount].Height:=50;
+                DocBut[j][btnCount].Caption:=IntToStr(btnCount);
+                DocBut[j][btnCount].Tag:=i;
+                DocBut[j][btnCount].OnClick:=SnapClick;
                 SetButtonPosition(DocBut[j]);
               except
                 ShowMessage('动态添加按钮发生错误');
               end;
-            end
-            else
-            begin
-              ShowMessage(DocBut[j][docButPos].Caption);
-              //DocBut[j][docButPos].Font.Color:=clRed;
             end;
-         end;
+        end
+        else
+        begin
+          //ShowMessage(DocBut[j][docButPos].Caption);
+          //DocBut[j][docButPos].Font.Color:=clRed;
+          if(DocumentsTypeName[j]=docPanName) then
+            DocBut[j][docButPos+1].Font.Style:= [fsbold];
+        end;
       end;
     end;
   end;
