@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, DSUtil, StdCtrls, DSPack, DirectShow9, Menus, ExtCtrls,jpeg,
-  ComCtrls, ImgList,IniFiles, ShellCtrls;
+  ComCtrls, ImgList,IniFiles, ShellCtrls, CnButtons;
 
 type
   TVideoForm = class(TForm)
@@ -28,6 +28,7 @@ type
     N3: TMenuItem;
     TreeView1: TTreeView;
     PopupMenu3: TPopupMenu;
+    CnButton1: TCnButton;
 
     procedure FormCreate(Sender: TObject);  
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -61,6 +62,8 @@ type
       MousePos: TPoint; var Handled: Boolean);
     procedure FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
+    procedure TreeView1CustomDrawItem(Sender: TCustomTreeView;
+      Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
  
   private
     { D閏larations priv閑s }
@@ -200,7 +203,7 @@ begin
             DocBut[i][0].Visible:=True;
             DocBut[i][0].Width:=50;
             DocBut[i][0].Height:=50;
-            DocBut[i][0].Caption:='Scan';
+            DocBut[i][0].Caption:='扫描新页';
             DocBut[i][0].Tag:=i;
             DocBut[i][0].Hint:='new';
             DocBut[i][0].OnClick:=SnapNextClick;
@@ -536,12 +539,23 @@ begin
   Node:=t.Selected;
   while Node.Level>0 do
   begin
-   dir:='\'+Node.Text+'\'+dir;
+
+    if(dir='')then
+    begin
+      dir:=Node.Text+'\';
+    end
+    else
+    begin
+      dir:=Node.Text+'\'+dir;
+    end;
+
+    //dir:='\'+Node.Text+'\'+dir;
    Node:=Node.Parent;
   end;
   if(Node.Level=0) then
   begin
-   dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
+     dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+'\'+dir;
+   //dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
    Node:=Node.Parent;
   end;
   Result:=dir;
@@ -584,11 +598,13 @@ begin
                  begin
                    vlItem.Caption := '新建'+NodeName[Node.Level+1];
                    vlItem.Hint:=IntToStr(Node.Level+1);
+                   {
                  end
                  else
-                 begin                        
+                 begin
                    vlItem.Caption := '新建';
                    vlItem.Hint:=IntToStr(Node.Level+1);
+                   }
                  end;
                end;
                //ShowMessage(IntToStr(Node.Level));
@@ -677,11 +693,22 @@ var
   Bitmap : TBitmap;
   savejpgname :string;
   node:TTreeNode;
+  dlgResult:Integer;
 begin
   if(Sender is TButton) then
   begin
     btn:=TButton(Sender);
     labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
+    if(btn.Font.Style= [fsbold]) then
+    begin
+      //ShowMessage('文件已存在，确认扫描？');
+      dlgResult:=MessageBox(Handle,'文件已存在，确认重新扫描？','确认',MB_OKCANCEL);
+      if dlgResult = 2 then
+      begin
+          exit;
+      end;
+    end;
+
       try
       savejpgname:=GetTreeviewNodeDir(TreeView1)+'\'+labTitle.Caption+Connector+btn.Caption+'.jpg';
       //ShowMessage(savejpgname);
@@ -732,6 +759,7 @@ var
   begin
     //获取当前选择节点，显示其中图片文件
     try
+      StatusBar1.SimpleText:=GetTreeviewNodeDir(TreeView1);
     if not Assigned(Filelist) then
     begin
       Filelist := TStringList.Create;
@@ -889,8 +917,12 @@ var
         begin
           //ShowMessage(DocBut[j][docButPos].Caption);
           //DocBut[j][docButPos].Font.Color:=clRed;
+          try
           if(DocumentsTypeName[j]=docPanName) then
-            DocBut[j][docButPos+1].Font.Style:= [fsbold];
+            DocBut[j][docButPos-1].Font.Style:= [fsbold];
+          except
+            ShowMessage('按钮与图片匹配错误');
+          end;
         end;
       end;
     end;
@@ -1082,6 +1114,17 @@ procedure TVideoForm.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin     
        scbmain.vertScrollBar.Position := scbmain.vertScrollBar.Position + 25 ;
+end;
+
+//在失去焦点时依然保持选中状态显示
+procedure TVideoForm.TreeView1CustomDrawItem(Sender: TCustomTreeView;
+  Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+begin
+    if node.Selected then
+    begin
+      TreeView1.Canvas.Brush.Style := bsSolid;
+      TreeView1.Canvas.Brush.Color := clBlue;
+    end;
 end;
 
 end.
