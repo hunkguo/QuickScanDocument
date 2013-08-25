@@ -347,11 +347,12 @@ object VideoForm: TVideoForm
     AutoCheck = True
     InfoFile.Files.Strings = (
       'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.exe')
+    InfoFile.UpgradeMsg = #26356#26032#20869#23481#65306#13#10#26410#36873#20013#33410#28857#26102#65292#19981#33021#25195#25551
     InfoFileURL = 'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.inf'
     VersionControl = byNumber
     VersionDate = '08/25/2013'
     VersionDateAutoSet = True
-    VersionNumber = '1.0.0.4'
+    VersionNumber = '1.0.0.3'
     Left = 128
     Top = 24
   end

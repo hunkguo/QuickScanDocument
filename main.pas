@@ -193,13 +193,12 @@ begin
           end;
 
           Connector:=ini.ReadString('Connector','symbol','-');
-
+          ProjectName:=ini.ReadString('Project','ProjectName',''); 
+          ini:=TInifile.Create('./Config/OpenHistory.ini');
           //写入项目下配置文件，项目名称
-          ini.writestring('Project','ProjectName',ProjectName);
+          ini.writestring('LastProjectPath','ProjectName',ProjectName);
           //写入程序目录下配置文件，项目名称
-          ini:=TInifile.Create('./Config/OpenHistory.ini');
           ProjectDir:=ini.ReadString('LastProjectPath','path','');
-          ini:=TInifile.Create('./Config/OpenHistory.ini');
 
     
         end;
@@ -698,8 +697,11 @@ begin
       end
       else
       begin
-          vlItem.Caption := '新建'+NodeName[0];
-          vlItem.Hint:=IntToStr(0);
+          if (treeview1.Items.Count>0) then
+          begin   
+            vlItem.Caption := '新建'+NodeName[0];
+            vlItem.Hint:=IntToStr(0);  
+          end;
       end;
       PopupMenu3.Items.Clear;
 
@@ -782,8 +784,13 @@ var
   savejpgname :string;
   node:TTreeNode;
   dlgResult:Integer;
-begin
-  if(Sender is TcxButton) then
+begin    
+  if treeview1.Selected=nil then
+    Exit;
+  node:=TreeView1.Selected;
+  //ShowMessage('1---'+inttostr(node.Level));
+  //ShowMessage('2---'+IntToStr(High(DocumentsTypeName)));
+  if(Sender is TButton) and ((High(DocumentsTypeName)+1)=node.Level) then
   begin
     btn:=TcxButton(Sender);
     labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
@@ -1189,8 +1196,12 @@ var
   node:TTreeNode;     
   row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
-
-  if(Sender is TcxButton) then
+  if treeview1.Selected=nil then
+    Exit;
+  node:=TreeView1.Selected;
+  //ShowMessage('1---'+inttostr(node.Level));
+  //ShowMessage('2---'+IntToStr(High(DocumentsTypeName)));
+  if(Sender is TButton) and ((High(DocumentsTypeName)+1)=node.Level) then
   begin
     btn:=TcxButton(Sender);
     //ShowMessage(IntToStr(btn.Tag));
@@ -1317,7 +1328,8 @@ begin
     initControl();
     try
       if(DirectoryExists(ProjectDir))then
-      begin              
+      begin
+            treeview1.Items.Clear;    
             treeview1.Items.AddFirst( nil,ProjectName );
             DirToTreeView(TreeView1,ProjectDir,TreeView1.Items.GetFirstNode,false);
             TreeView1.FullExpand;
@@ -1351,7 +1363,17 @@ var
   ini:TInifile;
 begin
     SelectDirectory('选择打开项目的位置', '', ProjectDir);
-    NewAndOpenInit;
+    if(not FileExists(ProjectDir+'\Config\Default.ini')) then
+    begin
+      ShowMessage('打开的项目无配置文件');
+    end
+    else
+    begin
+        NewAndOpenInit;
+    end;
+
+
+
 end;
 
 
