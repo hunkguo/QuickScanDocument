@@ -5,7 +5,9 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, DSUtil, StdCtrls, DSPack, DirectShow9, Menus, ExtCtrls,jpeg,
-  ComCtrls, ImgList,IniFiles, ShellCtrls, CnButtons, WinSkinData;
+  ComCtrls, ImgList,IniFiles, ShellCtrls,  auHTTP, auAutoUpgrader,Filectrl,ShlObj,
+ cxButtons, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters, dxSkinsCore,
+  dxSkinsDefaultPainters, dxSkinsForm,StrUtils;
 
 type
   TVideoForm = class(TForm)
@@ -26,8 +28,13 @@ type
     PopupMenu2: TPopupMenu;
     StatusBar1: TStatusBar;
     N3: TMenuItem;
-    TreeView1: TTreeView;
     PopupMenu3: TPopupMenu;
+    TreeView1: TTreeView;
+    N2: TMenuItem;
+    NewProject: TMenuItem;
+    OpenProject: TMenuItem;
+    auAutoUpgrader1: TauAutoUpgrader;
+    dxSkinController1: TdxSkinController;
 
     procedure FormCreate(Sender: TObject);  
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -40,11 +47,13 @@ type
     procedure initDirectory();
     procedure initControl();
     procedure initConfig();
-    procedure SetButtonPosition(Buttons:array of TCnButton);
+    procedure SetButtonPosition(Buttons:array of TcxButton);
 
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure SnapClick(Sender: TObject);
     procedure SnapNextClick(Sender: TObject);
+
+    procedure NewAndOpenInit();
 
     procedure scrlbx_picMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -63,6 +72,8 @@ type
       MousePos: TPoint; var Handled: Boolean);
     procedure TreeView1CustomDrawItem(Sender: TCustomTreeView;
       Node: TTreeNode; State: TCustomDrawState; var DefaultDraw: Boolean);
+    procedure NewProjectClick(Sender: TObject);
+    procedure OpenProjectClick(Sender: TObject);
  
   private
     { D閏larations priv閑s }
@@ -97,11 +108,15 @@ var
   DocPanel :array of TPanel;              //一种文档类型一个Panel
   DocTitle :array of TLabel;              //文档的标题
   Docscb :array of TScrollBox;      //文档的扫描按钮容器，可以滚动
-  DocBut :array of array of TCnButton;   //定义二维数组，存放button
+  DocBut :array of array of TcxButton;   //定义二维数组，存放button
 
   //读取配置文件
   NodeName :array[0..500] of string;
   Connector:string;   //文件命名连接符
+
+
+  //保存项目目录
+  ProjectDir,ProjectName:string;
 
 
 
@@ -109,7 +124,47 @@ implementation
 
 
 
-{$R *.dfm}                       
+{$R *.dfm}
+//选择文件夹并可新建文件夹
+{
+function SelectFolderDialog(const Handle: integer; const Caption: string;
+  const InitFolder: WideString; var SelectedFolder: string): boolean;
+var
+  BInfo: _browseinfo;
+  Buffer: array [0 .. MAX_PATH] of Char;
+  ID: IShellFolder;
+  Eaten, Attribute: Cardinal;
+  ItemID: PItemidlist;
+begin
+  Result := False;
+  BInfo.HwndOwner := Handle;
+  BInfo.lpfn := nil;
+  BInfo.lpszTitle := Pchar(Caption);
+  BInfo.ulFlags := BIF_RETURNONLYFSDIRS + BIF_NEWDIALOGSTYLE;
+  SHGetDesktopFolder(ID);
+  ID.ParseDisplayName(0, nil, PWideChar(InitFolder), Eaten, ItemID, Attribute);
+  BInfo.pidlRoot := ItemID;
+  GetMem(BInfo.pszDisplayName, MAX_PATH);
+  try
+    if SHGetPathFromIDList(SHBrowseForFolder(BInfo), Buffer) then
+    begin
+      SelectedFolder := Buffer;
+      if Length(SelectedFolder) <> 3 then
+        SelectedFolder := SelectedFolder + '\';
+      Result := True;
+    end
+    else
+    begin
+      SelectedFolder := '';
+      Result := False;
+    end;
+  finally
+    FreeMem(BInfo.pszDisplayName);
+  end;
+end;
+ }
+
+                       
 procedure TVideoForm.initConfig();
 var
   ini:TInifile;
@@ -118,25 +173,36 @@ var
 begin
       DirectoryLevel := TStringList.Create;
       try
-
-        ini:=TInifile.Create('./Config/Default.ini');
-        ini.ReadSection('Directory',DirectoryLevel);
-        for i:=0 to DirectoryLevel.Count-1 do
+        if(DirectoryExists(ProjectDir)) then
         begin
-          NodeName[i]:=ini.ReadString('Directory',DirectoryLevel[i],'');
-        end;
+          ini:=TInifile.Create(ProjectDir+'/Config/Default.ini');
+          ini.ReadSection('Directory',DirectoryLevel);
+          for i:=0 to DirectoryLevel.Count-1 do
+          begin
+            NodeName[i]:=ini.ReadString('Directory',DirectoryLevel[i],'');
+          end;
 
-        docs := TStringList.Create;
-        ini.ReadSection('Documents',docs);
-        SetLength(DocumentsTypeName,docs.Count);
-        SetLength(DocumentsTypeNum,docs.Count);
-        for i:=0 to docs.Count-1 do
-        begin
-          DocumentsTypeNum[i]:=ini.ReadString('Documents',docs[i],'');
-          DocumentsTypeName[i]:=docs[i];
-        end;
+          docs := TStringList.Create;
+          ini.ReadSection('Documents',docs);
+          SetLength(DocumentsTypeName,docs.Count);
+          SetLength(DocumentsTypeNum,docs.Count);
+          for i:=0 to docs.Count-1 do
+          begin
+            DocumentsTypeNum[i]:=ini.ReadString('Documents',docs[i],'');
+            DocumentsTypeName[i]:=docs[i];
+          end;
 
-        Connector:=ini.ReadString('Connector','symbol','-');
+          Connector:=ini.ReadString('Connector','symbol','-');
+
+          //写入项目下配置文件，项目名称
+          ini.writestring('Project','ProjectName',ProjectName);
+          //写入程序目录下配置文件，项目名称
+          ini:=TInifile.Create('./Config/OpenHistory.ini');
+          ProjectDir:=ini.ReadString('LastProjectPath','path','');
+          ini:=TInifile.Create('./Config/OpenHistory.ini');
+
+    
+        end;
       except
           ShowMessage('配置文件读取错误，程序将退出！');              
           ExitProcess(0);
@@ -197,7 +263,7 @@ begin
           if(DocumentsTypeNum[i]='n')then
           begin
             SetLength(DocBut[i],1);
-            DocBut[i][0]:=TCnButton.Create(self);
+            DocBut[i][0]:=TcxButton.Create(self);
             DocBut[i][0].Parent:=Docscb[i];
             DocBut[i][0].Visible:=True;
             DocBut[i][0].Width:=50;
@@ -213,7 +279,7 @@ begin
             for  j:=0 to  StrToInt(DocumentsTypeNum[i])-1 do
             begin
               SetLength(DocBut[i],j+1);
-              DocBut[i][j]:=TCnButton.Create(self);
+              DocBut[i][j]:=TcxButton.Create(self);
               DocBut[i][j].Parent:=Docscb[i];
               DocBut[i][j].Visible:=True;
               DocBut[i][j].Width:=50;
@@ -263,7 +329,7 @@ begin
 
 
       end;
-procedure TVideoForm.SetButtonPosition(Buttons:array of TCnButton);
+procedure TVideoForm.SetButtonPosition(Buttons:array of TcxButton);
 var
   i,row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
@@ -312,15 +378,20 @@ begin
 
 end;
 procedure TVideoForm.initDirectory;
-var
-  ini:TInifile;
-  list:TStringList;
-  i:integer;
-  allName:string;
 begin
   //载入配置文件中的目录
   try
-      ini:=TInifile.Create('./Config/Default.ini');
+  
+        if not DirectoryExists(ProjectDir+'/Config') then
+        begin
+           CreateDir(ProjectDir+'/Config');
+
+        end;
+        if not FileExists(ProjectDir+'/Config/Default.ini') then
+          CopyFile(pChar('./Config/Default.ini'),pChar(ProjectDir+'/Config/Default.ini'),true);
+
+      {
+      ini:=TInifile.Create(ProjectDir+'/Config/Default.ini');
       list:=TStringlist.Create;
       ini.ReadSection('Directory',list);
       allName:='';
@@ -332,9 +403,8 @@ begin
            CreateDir(Document+allName);
         end;
       end;
-  except    
-    list.free;
-    ini.Free;
+      }
+  except
     ShowMessage('目录初始化错误');
   end;
 
@@ -378,7 +448,22 @@ procedure TVideoForm.FormCreate(Sender: TObject);
 var
   i: integer;
   Device: TMenuItem;
+  ini:TInifile;
+  str:string;
 begin
+  
+  //ShowMessage(auAutoUpgrader1.VersionNumber);
+  //自动更新
+  auAutoUpgrader1.CheckUpdate(true);
+
+                                      {
+   str:='Valentine.skinres'; //此处请各位自行修改,可以下载上面的皮肤资源后,
+                                                   //遍历所有的皮肤资源文件.
+   dxSkinsUserSkinLoadFromFile(Trim(ExtractFilePath(Application.ExeName)) + '\skin\' + str);
+   dxSkinController1.NativeStyle:=False;
+   dxSkinController1.UseSkins:=True;
+                                       }
+ 
   SysDev:= TSysDevEnum.Create(CLSID_VideoInputDeviceCategory);
   if SysDev.CountFilters > 0 then
   begin   
@@ -405,37 +490,31 @@ begin
     Application.Terminate;
   end;
 
-    
-
-
-
-
-
-
-  Document:=ExtractFilePath(Paramstr(0)) +'Document';
-
-  //创建Document目录
   try
-  if not DirectoryExists(Document) then
-  begin
-     CreateDir(Document);
-  end;
+    ini:=TInifile.Create('./Config/OpenHistory.ini');
+    ProjectDir:=ini.ReadString('LastProjectPath','path','');   
+    ProjectName:=ini.ReadString('LastProjectPath','ProjectName','');
   except
-    ShowMessage('Document目录初始化错误');
-  end;
-                      
+    ShowMessage('读取上次打开记录失败');
+    end;
+   
+  //初始化目录，从default.ini文件读取配置
+  initDirectory();                           
   //初始化配置
-  initConfig();   
+  initConfig();
   //初始化控件，从default.ini文件读取配置
   initControl();
-  
-  //初始化目录，从default.ini文件读取配置
-  initDirectory();
+
 
 
   try
-  DirToTreeView(TreeView1,Document,nil,false);
-  TreeView1.FullExpand;
+    if(DirectoryExists(ProjectDir)) and (ProjectDir<>ExtractFilePath(Paramstr(0))) then
+    begin
+          treeview1.Items.AddFirst( nil,ProjectName );
+          DirToTreeView(TreeView1,ProjectDir,TreeView1.Items.GetFirstNode,false);
+          TreeView1.FullExpand;
+    end;
+
   except
     ShowMessage('读取目录结构错误');
   end;
@@ -468,6 +547,9 @@ procedure TVideoForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   Filelist.Free;
   ClearImage;
+  treeview1.Free;
+  scbMain.Free;
+  scrlbx_pic.Free;
 end;
 
 
@@ -506,11 +588,13 @@ begin
       repeat
         if (SearchRec.Attr and faDirectory = faDirectory) and (SearchRec.Name[1] <> '.') then
         begin
-          if (SearchRec.Attr and faDirectory > 0) then
+          if (SearchRec.Attr and faDirectory > 0) and (SearchRec.Name<>'Config') then
+          begin
             Root := AddChild(Root, SearchRec.Name);
           ItemTemp := Root.Parent;
           DirToTreeView(Tree, Directory + SearchRec.Name, Root, IncludeFiles);
           Root := ItemTemp;
+          end;
         end
         else if IncludeFiles then
           if SearchRec.Name[1] <> '.' then
@@ -551,12 +635,15 @@ begin
     //dir:='\'+Node.Text+'\'+dir;
    Node:=Node.Parent;
   end;
+  dir:=ProjectDir+'\'+dir;
+  {
   if(Node.Level=0) then
   begin
-     dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+'\'+dir;
+     dir:=ProjectDir+Node.Text+'\'+dir;
    //dir:=ExtractFilePath(Paramstr(0))+'Document\'+Node.Text+dir;
    Node:=Node.Parent;
   end;
+  }
   Result:=dir;
 
 end;
@@ -593,10 +680,10 @@ begin
              Node.Selected:=true;
                if( Node.Level>=0) then
                begin
-                 if(NodeName[Node.Level+1]<>'' )then
+                 if(NodeName[Node.Level]<>'' )then
                  begin
-                   vlItem.Caption := '新建'+NodeName[Node.Level+1];
-                   vlItem.Hint:=IntToStr(Node.Level+1);
+                   vlItem.Caption := '新建'+NodeName[Node.Level];
+                   vlItem.Hint:=IntToStr(Node.Level);
                    {
                  end
                  else
@@ -625,34 +712,36 @@ end;
 
 procedure TVideoForm.TreeviewRightClick(Sender: TObject);
 var
-  projectName:string;
+  Name:string;
     Node : TTreeNode;
     menuItem:TMenuItem;
 begin
-  projectName:=InputBox( '输入项目名称','项目名称','');
-  if trim(projectName)<>'' then
+  Name:=InputBox( '输入名称','名称','');
+  if trim(Name)<>'' then
   begin
      menuItem:=TMenuItem(Sender);
      try
       if(menuItem.Hint='0')then
       begin
-         if not DirectoryExists(Document+'\'+projectName) then
+         if not DirectoryExists(ProjectDir+'\'+Name) then
           begin
-             CreateDir(Document+'\'+projectName);
+             CreateDir(ProjectDir+'\'+Name);
           end;
       end
       else
       begin
-         if not DirectoryExists(GetTreeviewNodeDir(TreeView1)+'\'+projectName) then
+         if not DirectoryExists(GetTreeviewNodeDir(TreeView1)+'\'+Name) then
           begin
-             CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
+            //ShowMessage(GetTreeviewNodeDir(TreeView1)+'\'+projectName);
+             CreateDir(GetTreeviewNodeDir(TreeView1)+'\'+Name);
           end;
       end;
       except
         ShowMessage('创建项目目录错误');
       end;
       TreeView1.Items.Clear();
-      DirToTreeView(TreeView1,Document,nil,false);
+      treeview1.Items.AddFirst( nil,ProjectName );
+      DirToTreeView(TreeView1,ProjectDir,TreeView1.Items.GetFirstNode,false);
       TreeView1.FullExpand;
   end;
 
@@ -686,7 +775,7 @@ end;
 procedure TVideoForm.SnapClick(Sender: TObject);
 var
   i:Integer;
-  btn:TCnButton;
+  btn:TcxButton;
   labTitle:TLabel;
   jp: TJPEGImage;
   Bitmap : TBitmap;
@@ -694,11 +783,11 @@ var
   node:TTreeNode;
   dlgResult:Integer;
 begin
-  if(Sender is TCnButton) then
+  if(Sender is TcxButton) then
   begin
-    btn:=TCnButton(Sender);
+    btn:=TcxButton(Sender);
     labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
-    if(btn.Font.Style= [fsbold]) then
+    if(btn.Font.size= 16) then
     begin
       //ShowMessage('文件已存在，确认扫描？');
       dlgResult:=MessageBox(Handle,'文件已存在，确认重新扫描？','确认',MB_OKCANCEL);
@@ -748,9 +837,19 @@ begin
   result.Add(temp);
 end;
 
+function ReversePos(SubStr, S: String): Integer;
+var
+  i : Integer;
+  begin
+  i := Pos(ReverseString(SubStr), ReverseString(S));
+  if i>0 then
+    i := Length(S)- i- Length(SubStr)+2;
+  Result := i;
+  end;
+
 procedure TVideoForm.ShowImage;
 var
-  i,j,k,docButPos,btnCount:Integer;  
+  i,j,k,docButPos,btnCount,strpos:Integer;
  SearchRec:TSearchRec;
  found:integer;
  docPanName,docButName:string;
@@ -883,52 +982,125 @@ var
     //读取图片列表，判断所属的panel，如果是动态按钮，添加之
     for i:=0 to Imgcount-1 do
     begin
-      strs := SplitString(Filelist[i], connector);
-      docPanName:=Strs[0];
-      docButName:=Strs[1];
-      docButPos:=StrToInt(docButName);
-      //ShowMessage(docPanName+'###########'+docButName);
-      for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
+      if(connector<>'')then
       begin
-         //如果文件名相同，且控件数目为n,遍历buts
-         if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
-         begin
-            btnCount:=Length(DocBut[j]);
-            if(btnCount<=docButPos) then
+          strs := SplitString(Filelist[i], connector);
+          docPanName:=Strs[0];
+          docButName:=Strs[1];
+          docButPos:=StrToInt(docButName);
+
+
+          //ShowMessage(docPanName+'###########'+docButName);     代码重复
+          for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
+          begin
+             //如果文件名相同，且控件数目为n,遍历buts
+             if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
+             begin
+                btnCount:=Length(DocBut[j]);
+                if(btnCount<=docButPos) then
+                begin
+                  try
+                    SetLength(DocBut[j],btnCount+1);
+                    DocBut[j][btnCount]:=TcxButton.Create(self);
+                    DocBut[j][btnCount].Parent:=Docscb[j];
+                    DocBut[j][btnCount].Visible:=True;
+                    DocBut[j][btnCount].Width:=50;
+                    DocBut[j][btnCount].Height:=50;
+                    DocBut[j][btnCount].Caption:=IntToStr(btnCount);
+                    DocBut[j][btnCount].Tag:=i;
+                    DocBut[j][btnCount].OnClick:=SnapClick;
+                    DocBut[j][btnCount].Font.Size:=16;
+                    {
+                    DocBut[j][btnCount].Colors.Normal:=clRed;
+                    DocBut[j][btnCount].Colors.NormalText:=clWhite;
+                    }
+                    SetButtonPosition(DocBut[j]);
+                  except
+                    ShowMessage('动态添加按钮发生错误');
+                  end;
+                end;
+            end
+            else
             begin
+              //ShowMessage(DocBut[j][docButPos].Caption);
+              //DocBut[j][docButPos].Font.Color:=clRed;
               try
-                SetLength(DocBut[j],btnCount+1);
-                DocBut[j][btnCount]:=TCnButton.Create(self);
-                DocBut[j][btnCount].Parent:=Docscb[j];
-                DocBut[j][btnCount].Visible:=True;
-                DocBut[j][btnCount].Width:=50;
-                DocBut[j][btnCount].Height:=50;
-                DocBut[j][btnCount].Caption:=IntToStr(btnCount);
-                DocBut[j][btnCount].Tag:=i;
-                DocBut[j][btnCount].OnClick:=SnapClick;
-                DocBut[j][btnCount].Color:=clBlue;
-                DocBut[j][btnCount].Font.Color:=clWhite;
-                DocBut[j][btnCount].Font.Style:= [fsbold];
-                SetButtonPosition(DocBut[j]);
+              if(DocumentsTypeName[j]=docPanName) then
+              begin
+                DocBut[j][docButPos-1].Font.Size:=16;
+                {
+                DocBut[j][docButPos-1].Colors.Default:=clBlue;
+                DocBut[j][docButPos-1].Font.Color:=clWhite;
+                }
+              end;
               except
-                ShowMessage('动态添加按钮发生错误');
+                ShowMessage('按钮与图片匹配错误');
               end;
             end;
-        end
-        else
-        begin
-          //ShowMessage(DocBut[j][docButPos].Caption);
-          //DocBut[j][docButPos].Font.Color:=clRed;
-          try
-          if(DocumentsTypeName[j]=docPanName) then
-            DocBut[j][docButPos-1].Font.Style:= [fsbold];
-          except
-            ShowMessage('按钮与图片匹配错误');
           end;
-        end;
+      end
+      else
+          for k:=Low(DocTitle) to High(DocTitle) do
+          begin
+            strpos:=ReversePos(DocTitle[k].Caption,Filelist[i]);
+            if strpos<>0 then   //得到的j是字符串中出现的位置，是整型
+            begin
+              docPanName:=copy(PChar(Filelist[i]),strpos,Length(DocTitle[k].Caption));
+              docButName:=copy(PChar(Filelist[i]),Length(DocTitle[k].Caption)+1,(Length(Filelist[i])-(Length(Filelist[i])-pos('.',Filelist[i]))-(Length(DocTitle[k].Caption)+1)));              
+              docButPos:=StrToInt(docButName);
+              //showmessage(Filelist[i]+'**'+docPanName+'##'+docButName);    代码重复
+              for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
+              begin
+                 //如果文件名相同，且控件数目为n,遍历buts
+                 if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
+                 begin
+                    btnCount:=Length(DocBut[j]);
+                    if(btnCount<=docButPos) then
+                    begin
+                      try
+                        SetLength(DocBut[j],btnCount+1);
+                        DocBut[j][btnCount]:=TcxButton.Create(self);
+                        DocBut[j][btnCount].Parent:=Docscb[j];
+                        DocBut[j][btnCount].Visible:=True;
+                        DocBut[j][btnCount].Width:=50;
+                        DocBut[j][btnCount].Height:=50;
+                        DocBut[j][btnCount].Caption:=IntToStr(btnCount);
+                        DocBut[j][btnCount].Tag:=i;
+                        DocBut[j][btnCount].OnClick:=SnapClick;
+                        DocBut[j][btnCount].Font.Size:=16;
+                        {
+                        DocBut[j][btnCount].Colors.Normal:=clRed;
+                        DocBut[j][btnCount].Colors.NormalText:=clWhite;
+                        }
+                        SetButtonPosition(DocBut[j]);
+                      except
+                        ShowMessage('动态添加按钮发生错误');
+                      end;
+                    end;
+                end
+                else
+                begin
+                  //ShowMessage(DocBut[j][docButPos].Caption);
+                  //DocBut[j][docButPos].Font.Color:=clRed;
+                  try
+                  if(DocumentsTypeName[j]=docPanName) then
+                  begin
+                    DocBut[j][docButPos-1].Font.Size:=16;
+                    {
+                    DocBut[j][docButPos-1].Colors.Default:=clBlue;
+                    DocBut[j][docButPos-1].Font.Color:=clWhite;
+                    }
+                  end;
+                  except
+                    ShowMessage('按钮与图片匹配错误');
+                  end;
+                end;
+              end;
+            end;
+          end;
       end;
+
     end;
-  end;
 
 
 procedure TVideoForm.DeleteImage(i:Integer);
@@ -1009,7 +1181,7 @@ end;
 procedure TVideoForm.SnapNextClick(Sender: TObject);
 var
   i,btnCount:Integer;
-  btn:TCnButton;
+  btn:TcxButton;
   labTitle:TLabel;
   jp: TJPEGImage;
   Bitmap : TBitmap;
@@ -1018,15 +1190,15 @@ var
   row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
 
-  if(Sender is TCnButton) then
+  if(Sender is TcxButton) then
   begin
-    btn:=TCnButton(Sender);
+    btn:=TcxButton(Sender);
     //ShowMessage(IntToStr(btn.Tag));
     i:=btn.Tag;
     btnCount:=length(DocBut[btn.Tag]);
     try
     SetLength(DocBut[i],btnCount+1);
-    DocBut[i][btnCount]:=TCnButton.Create(self);
+    DocBut[i][btnCount]:=TcxButton.Create(self);
     DocBut[i][btnCount].Parent:=Docscb[i];
     DocBut[i][btnCount].Visible:=True;
     DocBut[i][btnCount].Width:=50;
@@ -1036,7 +1208,7 @@ begin
     DocBut[i][btnCount].OnClick:=SnapClick;
     DocBut[i][btnCount].Font.Style:= [fsbold];
     DocBut[i][btnCount].Font.Color:=clWhite;
-    DocBut[i][btnCount].Color:=clBlue;
+    //DocBut[i][btnCount].Color:=clBlue;
 
     SetButtonPosition(DocBut[i]);
     except
@@ -1131,5 +1303,56 @@ begin
       TreeView1.Canvas.Brush.Color := clBlue;
     end;
 end;
+
+procedure TVideoForm.NewAndOpenInit();
+var
+  ini:TInifile;
+begin   
+     initDirectory();
+     ini:=TInifile.Create('./Config/OpenHistory.ini');
+    ini.writestring('LastProjectPath','path',ProjectDir);
+    //初始化配置
+    initConfig();
+    //初始化控件，从default.ini文件读取配置
+    initControl();
+    try
+      if(DirectoryExists(ProjectDir))then
+      begin              
+            treeview1.Items.AddFirst( nil,ProjectName );
+            DirToTreeView(TreeView1,ProjectDir,TreeView1.Items.GetFirstNode,false);
+            TreeView1.FullExpand;
+      end;
+
+    except
+      ShowMessage('读取目录结构错误');
+    end;
+end;
+procedure TVideoForm.NewProjectClick(Sender: TObject);
+var
+  ini:TInifile;
+begin
+    //SelectDirectory('选择新建项目保存位置', '', ProjectDir);
+    ProjectName:=InputBox( '输入项目名称','项目名称','');
+    SelectDirectory('选择新建项目保存位置','',ProjectDir);
+
+    if not DirectoryExists(ProjectDir+'\'+ProjectName) then
+        begin
+           CreateDir(ProjectDir+'\'+ProjectName);
+        end;
+    ProjectDir:=ProjectDir+'\'+ProjectName;
+    ini:=TInifile.Create('./Config/OpenHistory.ini');
+    ini.writestring('LastProjectPath','ProjectName',ProjectName);
+    NewAndOpenInit;
+
+end;
+
+procedure TVideoForm.OpenProjectClick(Sender: TObject);
+var
+  ini:TInifile;
+begin
+    SelectDirectory('选择打开项目的位置', '', ProjectDir);
+    NewAndOpenInit;
+end;
+
 
 end.
