@@ -1,9 +1,9 @@
 object VideoForm: TVideoForm
-  Left = 498
-  Top = 137
+  Left = 328
+  Top = 152
   Width = 1218
   Height = 735
-  Caption = 'go'
+  Caption = 'QuickScan'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -250,7 +250,7 @@ object VideoForm: TVideoForm
       Left = 0
       Top = 0
       Width = 300
-      Height = 473
+      Height = 460
       BevelOuter = bvSpace
       BorderStyle = bsNone
       TabOrder = 0
@@ -264,20 +264,6 @@ object VideoForm: TVideoForm
     TabOrder = 3
     OnClick = scrlbx_picClick
     OnMouseMove = scrlbx_picMouseMove
-    object CnButton1: TCnButton
-      Left = 152
-      Top = 48
-      Width = 81
-      Height = 57
-      Caption = 'CnButton1'
-      Color = clBtnFace
-      DownBold = False
-      FlatBorder = False
-      HotTrackBold = False
-      ParentColor = False
-      TabOrder = 0
-      TabStop = True
-    end
   end
   object StatusBar1: TStatusBar
     Left = 0

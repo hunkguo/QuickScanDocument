@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, DSUtil, StdCtrls, DSPack, DirectShow9, Menus, ExtCtrls,jpeg,
-  ComCtrls, ImgList,IniFiles, ShellCtrls, CnButtons;
+  ComCtrls, ImgList,IniFiles, ShellCtrls, CnButtons, WinSkinData;
 
 type
   TVideoForm = class(TForm)
@@ -28,7 +28,6 @@ type
     N3: TMenuItem;
     TreeView1: TTreeView;
     PopupMenu3: TPopupMenu;
-    CnButton1: TCnButton;
 
     procedure FormCreate(Sender: TObject);  
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -41,7 +40,7 @@ type
     procedure initDirectory();
     procedure initControl();
     procedure initConfig();
-    procedure SetButtonPosition(Buttons:array of TButton);
+    procedure SetButtonPosition(Buttons:array of TCnButton);
 
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure SnapClick(Sender: TObject);
@@ -98,7 +97,7 @@ var
   DocPanel :array of TPanel;              //一种文档类型一个Panel
   DocTitle :array of TLabel;              //文档的标题
   Docscb :array of TScrollBox;      //文档的扫描按钮容器，可以滚动
-  DocBut :array of array of TButton;   //定义二维数组，存放button
+  DocBut :array of array of TCnButton;   //定义二维数组，存放button
 
   //读取配置文件
   NodeName :array[0..500] of string;
@@ -198,7 +197,7 @@ begin
           if(DocumentsTypeNum[i]='n')then
           begin
             SetLength(DocBut[i],1);
-            DocBut[i][0]:=TButton.Create(self);
+            DocBut[i][0]:=TCnButton.Create(self);
             DocBut[i][0].Parent:=Docscb[i];
             DocBut[i][0].Visible:=True;
             DocBut[i][0].Width:=50;
@@ -214,7 +213,7 @@ begin
             for  j:=0 to  StrToInt(DocumentsTypeNum[i])-1 do
             begin
               SetLength(DocBut[i],j+1);
-              DocBut[i][j]:=TButton.Create(self);
+              DocBut[i][j]:=TCnButton.Create(self);
               DocBut[i][j].Parent:=Docscb[i];
               DocBut[i][j].Visible:=True;
               DocBut[i][j].Width:=50;
@@ -264,7 +263,7 @@ begin
 
 
       end;
-procedure TVideoForm.SetButtonPosition(Buttons:array of TButton);
+procedure TVideoForm.SetButtonPosition(Buttons:array of TCnButton);
 var
   i,row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
@@ -687,7 +686,7 @@ end;
 procedure TVideoForm.SnapClick(Sender: TObject);
 var
   i:Integer;
-  btn:TButton;
+  btn:TCnButton;
   labTitle:TLabel;
   jp: TJPEGImage;
   Bitmap : TBitmap;
@@ -695,9 +694,9 @@ var
   node:TTreeNode;
   dlgResult:Integer;
 begin
-  if(Sender is TButton) then
+  if(Sender is TCnButton) then
   begin
-    btn:=TButton(Sender);
+    btn:=TCnButton(Sender);
     labTitle:=TLabel(btn.Parent.Parent.Controls[0]);
     if(btn.Font.Style= [fsbold]) then
     begin
@@ -899,7 +898,7 @@ var
             begin
               try
                 SetLength(DocBut[j],btnCount+1);
-                DocBut[j][btnCount]:=TButton.Create(self);
+                DocBut[j][btnCount]:=TCnButton.Create(self);
                 DocBut[j][btnCount].Parent:=Docscb[j];
                 DocBut[j][btnCount].Visible:=True;
                 DocBut[j][btnCount].Width:=50;
@@ -907,6 +906,9 @@ var
                 DocBut[j][btnCount].Caption:=IntToStr(btnCount);
                 DocBut[j][btnCount].Tag:=i;
                 DocBut[j][btnCount].OnClick:=SnapClick;
+                DocBut[j][btnCount].Color:=clBlue;
+                DocBut[j][btnCount].Font.Color:=clWhite;
+                DocBut[j][btnCount].Font.Style:= [fsbold];
                 SetButtonPosition(DocBut[j]);
               except
                 ShowMessage('动态添加按钮发生错误');
@@ -1007,7 +1009,7 @@ end;
 procedure TVideoForm.SnapNextClick(Sender: TObject);
 var
   i,btnCount:Integer;
-  btn:TButton;
+  btn:TCnButton;
   labTitle:TLabel;
   jp: TJPEGImage;
   Bitmap : TBitmap;
@@ -1016,15 +1018,15 @@ var
   row,col,butCount,PanelHeigh,ScbHeigh:Integer;
 begin
 
-  if(Sender is TButton) then
+  if(Sender is TCnButton) then
   begin
-    btn:=TButton(Sender);
+    btn:=TCnButton(Sender);
     //ShowMessage(IntToStr(btn.Tag));
     i:=btn.Tag;
     btnCount:=length(DocBut[btn.Tag]);
     try
     SetLength(DocBut[i],btnCount+1);
-    DocBut[i][btnCount]:=TButton.Create(self);
+    DocBut[i][btnCount]:=TCnButton.Create(self);
     DocBut[i][btnCount].Parent:=Docscb[i];
     DocBut[i][btnCount].Visible:=True;
     DocBut[i][btnCount].Width:=50;
@@ -1032,6 +1034,9 @@ begin
     DocBut[i][btnCount].Caption:=IntToStr(btnCount);
     DocBut[i][btnCount].Tag:=i;
     DocBut[i][btnCount].OnClick:=SnapClick;
+    DocBut[i][btnCount].Font.Style:= [fsbold];
+    DocBut[i][btnCount].Font.Color:=clWhite;
+    DocBut[i][btnCount].Color:=clBlue;
 
     SetButtonPosition(DocBut[i]);
     except
@@ -1090,7 +1095,7 @@ begin
       jp.SaveToFile(savejpgname);
       ShowImage;
       except
-        ShowMessage('文件保存错误');
+        ShowMessage('文件保存错误,请选择保存位置');
       end;
 
   end;
