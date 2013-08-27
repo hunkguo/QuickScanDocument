@@ -1,8 +1,8 @@
 object VideoForm: TVideoForm
-  Left = 764
-  Top = 133
+  Left = 503
+  Top = 101
   Width = 1164
-  Height = 737
+  Height = 726
   Caption = 'QuickScan'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -189,7 +189,7 @@ object VideoForm: TVideoForm
   OnMouseWheelUp = FormMouseWheelUp
   DesignSize = (
     1148
-    679)
+    668)
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
@@ -274,7 +274,7 @@ object VideoForm: TVideoForm
     Left = 0
     Top = 464
     Width = 1145
-    Height = 185
+    Height = 174
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 3
     OnClick = scrlbx_picClick
@@ -282,7 +282,7 @@ object VideoForm: TVideoForm
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 651
+    Top = 640
     Width = 1148
     Height = 28
     Panels = <>
@@ -347,12 +347,14 @@ object VideoForm: TVideoForm
     AutoCheck = True
     InfoFile.Files.Strings = (
       'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.exe')
-    InfoFile.UpgradeMsg = #26356#26032#20869#23481#65306#13#10#26410#36873#20013#33410#28857#26102#65292#19981#33021#25195#25551
+    InfoFile.UpgradeMsg = 
+      #26356#26032#20869#23481#65306#13#10#36873#25321#33410#28857#25913#21464#26102#65292#28165#38500#25353#38062#21450#22270#29255#20851#32852#29366#24577#12290#13#10#28165#38500#29366#24577#26102#65292#20445#25345#25195#25551#26032#39029#25353#38062#19981#21464#12290#13#10#37197#32622#25991#20214#20013#39033#30446#21517#31216#20026#31354#26102#65292#33719#21462#25991 +
+      #20214#22841#21517#31216#20570#20026#39033#30446#21517#31216#26174#31034#24182#20889#20837#37197#32622#20013#12290
     InfoFileURL = 'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.inf'
     VersionControl = byNumber
-    VersionDate = '08/25/2013'
+    VersionDate = '08/27/2013'
     VersionDateAutoSet = True
-    VersionNumber = '1.0.0.3'
+    VersionNumber = '1.0.0.5'
     Left = 128
     Top = 24
   end

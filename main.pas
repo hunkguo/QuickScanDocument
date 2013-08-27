@@ -164,12 +164,21 @@ begin
 end;
  }
 
-                       
+
+function ReversePos(SubStr, S: String): Integer;
+var
+  i : Integer;
+  begin
+  i := Pos(ReverseString(SubStr), ReverseString(S));
+  if i>0 then
+    i := Length(S)- i- Length(SubStr)+2;
+  Result := i;
+  end;                       
 procedure TVideoForm.initConfig();
 var
   ini:TInifile;
   DirectoryLevel,docs:TStringList;
-  i:Integer;
+  i,p:Integer;
 begin
       DirectoryLevel := TStringList.Create;
       try
@@ -193,7 +202,15 @@ begin
           end;
 
           Connector:=ini.ReadString('Connector','symbol','-');
-          ProjectName:=ini.ReadString('Project','ProjectName',''); 
+          ProjectName:=ini.ReadString('Project','ProjectName','');
+
+            if(ProjectName='') then
+            begin
+                p:=ReversePos('\',ProjectDir);
+                ProjectName:=Copy(PChar(ProjectDir),p+1,Length(ProjectDir)-p);
+                ini.writestring('Project','ProjectName',ProjectName);
+            end;
+
           ini:=TInifile.Create('./Config/OpenHistory.ini');
           //写入项目下配置文件，项目名称
           ini.writestring('LastProjectPath','ProjectName',ProjectName);
@@ -267,7 +284,7 @@ begin
             DocBut[i][0].Visible:=True;
             DocBut[i][0].Width:=50;
             DocBut[i][0].Height:=50;
-            DocBut[i][0].Caption:='扫描新页';
+            DocBut[i][0].Caption:='扫描'+#13+'新页';
             DocBut[i][0].Tag:=i;
             DocBut[i][0].Hint:='new';
             DocBut[i][0].OnClick:=SnapNextClick;
@@ -412,9 +429,11 @@ begin
 end;
 procedure TVideoForm.ClearImage;
 var
-  i:Integer;
+  i,j,k:Integer;
 begin
+
   if Imgcount>=1 then
+  begin
     for i:=1 to Imgcount do
     begin
       if Assigned(Image[i]) then
@@ -437,8 +456,12 @@ begin
         BackGroud[i].Free;
         BackGroud[i]:=nil;
       end;
-      
+
+
     end;
+  end;
+
+
 end;
 
 
@@ -654,14 +677,55 @@ procedure TVideoForm.TreeView1MouseDown(Sender: TObject;
     Node : TTreeNode;
     cursorPos:TPoint;
     vlItem: TMenuItem;
-    i:Integer;
-begin
+    i,j,k:Integer;
+begin  
+  GetCursorPos(cursorPos);
+  Node:=TreeView1.GetNodeAt(x,y);
   if Button = mbLeft then
-  begin           
-      GetCursorPos(cursorPos);
-      if  treeView1.GetNodeAt(x,y)<>nil then
+  begin
+      if  (Node<>nil) and (NodeName[Node.Level]='') then
       begin          
         ShowImage();
+      end
+      else
+      begin
+        //ClearImage();
+        //清除按钮状态
+            for j:=Low(DocBut) to High(DocBut) do
+            begin
+                  for k:=Low(DocBut[j]) to High(DocBut[j]) do
+                  begin
+
+                        if(DocumentsTypeNum[j]='n') and (k>0) then
+                        begin
+                            DocBut[j][k].Visible:=False;
+                        end
+                        else
+                        begin 
+                            if(DocumentsTypeNum[j]='n') and (k=0) then
+                            begin
+                              DocBut[j][k].Font.Size:=8;
+                            end
+                            else
+                            begin
+                              DocBut[j][k].Font.Size:=8;
+                            end;
+
+                        end;
+
+                        //ShowMessage(DocTitle[j].Caption+'###'+DocBut[j][k].Caption);
+                  end;
+                  {
+              if(DocumentsTypeNum[j]='n')then
+              begin
+
+                end
+                else
+                begin
+              end;
+              }
+            end;
+
       end;
   end;
 
@@ -672,10 +736,10 @@ begin
       vlItem := TMenuItem.Create(Self);
       vlItem.OnClick:=TreeviewRightClick;
 
-      if  treeView1.GetNodeAt(x,y)<>nil then
+      if  Node<>nil then
       begin
 
-             Node:=TreeView1.GetNodeAt(x,y);
+
              Node.Selected:=true;
                if( Node.Level>=0) then
                begin
@@ -844,15 +908,6 @@ begin
   result.Add(temp);
 end;
 
-function ReversePos(SubStr, S: String): Integer;
-var
-  i : Integer;
-  begin
-  i := Pos(ReverseString(SubStr), ReverseString(S));
-  if i>0 then
-    i := Length(S)- i- Length(SubStr)+2;
-  Result := i;
-  end;
 
 procedure TVideoForm.ShowImage;
 var
@@ -996,55 +1051,62 @@ var
           docButName:=Strs[1];
           docButPos:=StrToInt(docButName);
 
-
           //ShowMessage(docPanName+'###########'+docButName);     代码重复
-          for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
-          begin
-             //如果文件名相同，且控件数目为n,遍历buts
-             if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
-             begin
-                btnCount:=Length(DocBut[j]);
-                if(btnCount<=docButPos) then
+              for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
+              begin
+                 //如果文件名相同，且控件数目为n,遍历buts
+                 if(DocumentsTypeName[j]=docPanName) and (DocumentsTypeNum[j]='n')then
+                 begin
+                    btnCount:=Length(DocBut[j]);
+                    if(btnCount<=docButPos) then
+                    begin
+                      try
+                        SetLength(DocBut[j],btnCount+1);
+                        DocBut[j][btnCount]:=TcxButton.Create(self);
+                        DocBut[j][btnCount].Parent:=Docscb[j];
+                        DocBut[j][btnCount].Visible:=True;
+                        DocBut[j][btnCount].Width:=50;
+                        DocBut[j][btnCount].Height:=50;
+                        DocBut[j][btnCount].Caption:=IntToStr(btnCount);
+                        DocBut[j][btnCount].Tag:=i;
+                        DocBut[j][btnCount].OnClick:=SnapClick;
+                        DocBut[j][btnCount].Font.Size:=16;
+                        {
+                        DocBut[j][btnCount].Colors.Normal:=clRed;
+                        DocBut[j][btnCount].Colors.NormalText:=clWhite;
+                        }
+                        SetButtonPosition(DocBut[j]);
+                      except
+                        ShowMessage('动态添加按钮发生错误');
+                      end;
+                    end
+                    else
+                    begin
+                      try
+                        DocBut[j][docButPos].Visible:=True;
+                      except
+                        ShowMessage('动态显示按钮发生错误');
+                    end;
+                    end;
+                end
+                else
                 begin
+                  //ShowMessage(DocBut[j][docButPos].Caption);
+                  //DocBut[j][docButPos].Font.Color:=clRed;
                   try
-                    SetLength(DocBut[j],btnCount+1);
-                    DocBut[j][btnCount]:=TcxButton.Create(self);
-                    DocBut[j][btnCount].Parent:=Docscb[j];
-                    DocBut[j][btnCount].Visible:=True;
-                    DocBut[j][btnCount].Width:=50;
-                    DocBut[j][btnCount].Height:=50;
-                    DocBut[j][btnCount].Caption:=IntToStr(btnCount);
-                    DocBut[j][btnCount].Tag:=i;
-                    DocBut[j][btnCount].OnClick:=SnapClick;
-                    DocBut[j][btnCount].Font.Size:=16;
+                  if(DocumentsTypeName[j]=docPanName) and (DocBut[j][docButPos-1].Hint<>'new') then
+                  begin
+                    DocBut[j][docButPos-1].Font.Size:=16;
                     {
-                    DocBut[j][btnCount].Colors.Normal:=clRed;
-                    DocBut[j][btnCount].Colors.NormalText:=clWhite;
+                    DocBut[j][docButPos-1].Colors.Default:=clBlue;
+                    DocBut[j][docButPos-1].Font.Color:=clWhite;
                     }
-                    SetButtonPosition(DocBut[j]);
+                  end;
                   except
-                    ShowMessage('动态添加按钮发生错误');
+                    ShowMessage('按钮与图片匹配错误');
                   end;
                 end;
-            end
-            else
-            begin
-              //ShowMessage(DocBut[j][docButPos].Caption);
-              //DocBut[j][docButPos].Font.Color:=clRed;
-              try
-              if(DocumentsTypeName[j]=docPanName) then
-              begin
-                DocBut[j][docButPos-1].Font.Size:=16;
-                {
-                DocBut[j][docButPos-1].Colors.Default:=clBlue;
-                DocBut[j][docButPos-1].Font.Color:=clWhite;
-                }
               end;
-              except
-                ShowMessage('按钮与图片匹配错误');
-              end;
-            end;
-          end;
       end
       else
           for k:=Low(DocTitle) to High(DocTitle) do
@@ -1053,7 +1115,7 @@ var
             if strpos<>0 then   //得到的j是字符串中出现的位置，是整型
             begin
               docPanName:=copy(PChar(Filelist[i]),strpos,Length(DocTitle[k].Caption));
-              docButName:=copy(PChar(Filelist[i]),Length(DocTitle[k].Caption)+1,(Length(Filelist[i])-(Length(Filelist[i])-pos('.',Filelist[i]))-(Length(DocTitle[k].Caption)+1)));              
+              docButName:=copy(PChar(Filelist[i]),Length(DocTitle[k].Caption)+1,(Length(Filelist[i])-(Length(Filelist[i])-pos('.',Filelist[i]))-(Length(DocTitle[k].Caption)+1)));
               docButPos:=StrToInt(docButName);
               //showmessage(Filelist[i]+'**'+docPanName+'##'+docButName);    代码重复
               for j:=Low(DocumentsTypeName) to High(DocumentsTypeName) do
@@ -1083,6 +1145,14 @@ var
                       except
                         ShowMessage('动态添加按钮发生错误');
                       end;
+                    end
+                    else
+                    begin
+                      try
+                        DocBut[j][docButPos].Visible:=True;
+                      except
+                        ShowMessage('动态显示按钮发生错误');
+                    end;
                     end;
                 end
                 else
@@ -1090,7 +1160,7 @@ var
                   //ShowMessage(DocBut[j][docButPos].Caption);
                   //DocBut[j][docButPos].Font.Color:=clRed;
                   try
-                  if(DocumentsTypeName[j]=docPanName) then
+                  if(DocumentsTypeName[j]=docPanName) and (DocBut[j][docButPos-1].Hint<>'new') then
                   begin
                     DocBut[j][docButPos-1].Font.Size:=16;
                     {
@@ -1342,6 +1412,7 @@ end;
 procedure TVideoForm.NewProjectClick(Sender: TObject);
 var
   ini:TInifile;
+  p:Integer;
 begin
     //SelectDirectory('选择新建项目保存位置', '', ProjectDir);
     ProjectName:=InputBox( '输入项目名称','项目名称','');
