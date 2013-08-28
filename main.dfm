@@ -1,10 +1,15 @@
 object VideoForm: TVideoForm
-  Left = 503
-  Top = 101
-  Width = 1164
-  Height = 726
+  Left = 448
+  Top = 51
+  AutoScroll = False
   Caption = 'QuickScan'
+  ClientHeight = 673
+  ClientWidth = 1105
   Color = clBtnFace
+  Constraints.MaxHeight = 731
+  Constraints.MaxWidth = 1121
+  Constraints.MinHeight = 731
+  Constraints.MinWidth = 1121
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -184,108 +189,72 @@ object VideoForm: TVideoForm
   Menu = MainMenu1
   OldCreateOrder = False
   Position = poScreenCenter
+  OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnMouseWheelDown = FormMouseWheelDown
   OnMouseWheelUp = FormMouseWheelUp
   DesignSize = (
-    1148
-    668)
+    1105
+    673)
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object imgPreview: TImage
     Left = 199
-    Top = -8
-    Width = 643
-    Height = 483
-    Anchors = [akLeft, akTop, akRight]
-    AutoSize = True
-    Caption = 'Panel1'
-    TabOrder = 0
-    DesignSize = (
-      643
-      483)
-    object imgPreview: TImage
-      Left = 1
-      Top = 1
-      Width = 640
-      Height = 480
-      Anchors = [akLeft, akTop, akRight]
-      Visible = False
-      OnClick = imgPreviewClick
-      OnDblClick = imgPreviewDblClick
-    end
-    object VideoWindow: TVideoWindow
-      Left = 2
-      Top = 2
-      Width = 640
-      Height = 480
-      FilterGraph = FilterGraph
-      VMROptions.Mode = vmrWindowed
-      Color = clBlack
-      Anchors = [akLeft, akTop, akRight]
-    end
-  end
-  object Panel2: TPanel
-    Left = 0
     Top = 0
-    Width = 201
-    Height = 473
-    Caption = 'Panel2'
-    TabOrder = 1
-    object TreeView1: TTreeView
-      Left = 0
-      Top = 0
-      Width = 201
-      Height = 465
-      HideSelection = False
-      Indent = 19
-      ReadOnly = True
-      TabOrder = 0
-      OnCustomDrawItem = TreeView1CustomDrawItem
-      OnMouseDown = TreeView1MouseDown
-    end
-  end
-  object Panel3: TPanel
-    Left = 844
-    Top = 0
-    Width = 300
-    Height = 473
-    Anchors = [akLeft, akTop, akRight]
-    BevelOuter = bvNone
-    Caption = 'Panel3'
-    Ctl3D = True
-    ParentCtl3D = False
-    TabOrder = 2
-    DesignSize = (
-      300
-      473)
-    object scbMain: TScrollBox
-      Left = 0
-      Top = 0
-      Width = 300
-      Height = 460
-      Anchors = [akLeft, akTop, akRight]
-      BevelOuter = bvSpace
-      BorderStyle = bsNone
-      TabOrder = 0
-    end
+    Width = 597
+    Height = 489
+    Visible = False
+    OnClick = imgPreviewClick
+    OnDblClick = imgPreviewDblClick
   end
   object scrlbx_pic: TScrollBox
-    Left = 0
-    Top = 464
-    Width = 1145
-    Height = 174
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    TabOrder = 3
+    Left = -8
+    Top = 488
+    Width = 806
+    Height = 161
+    Anchors = [akLeft, akRight, akBottom]
+    TabOrder = 0
     OnClick = scrlbx_picClick
     OnMouseMove = scrlbx_picMouseMove
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 640
-    Width = 1148
+    Top = 645
+    Width = 1105
     Height = 28
     Panels = <>
+  end
+  object tvDir: TTreeView
+    Left = -4
+    Top = 0
+    Width = 205
+    Height = 489
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    HideSelection = False
+    Indent = 19
+    ReadOnly = True
+    TabOrder = 2
+    OnCustomDrawItem = tvDirCustomDrawItem
+    OnMouseDown = tvDirMouseDown
+  end
+  object scbMain: TScrollBox
+    Left = 792
+    Top = 0
+    Width = 313
+    Height = 645
+    Align = alRight
+    BevelOuter = bvSpace
+    TabOrder = 3
+  end
+  object VideoWindow: TVideoWindow
+    Left = 200
+    Top = 0
+    Width = 594
+    Height = 489
+    FilterGraph = FilterGraph
+    VMROptions.Mode = vmrWindowed
+    Color = clBlack
   end
   object FilterGraph: TFilterGraph
     Mode = gmCapture
@@ -323,6 +292,10 @@ object VideoForm: TVideoForm
         OnClick = OpenProjectClick
       end
     end
+    object Version: TMenuItem
+      Caption = #29256#26412
+      OnClick = VersionClick
+    end
   end
   object PopupMenu1: TPopupMenu
     Left = 40
@@ -347,20 +320,13 @@ object VideoForm: TVideoForm
     AutoCheck = True
     InfoFile.Files.Strings = (
       'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.exe')
-    InfoFile.UpgradeMsg = 
-      #26356#26032#20869#23481#65306#13#10#36873#25321#33410#28857#25913#21464#26102#65292#28165#38500#25353#38062#21450#22270#29255#20851#32852#29366#24577#12290#13#10#28165#38500#29366#24577#26102#65292#20445#25345#25195#25551#26032#39029#25353#38062#19981#21464#12290#13#10#37197#32622#25991#20214#20013#39033#30446#21517#31216#20026#31354#26102#65292#33719#21462#25991 +
-      #20214#22841#21517#31216#20570#20026#39033#30446#21517#31216#26174#31034#24182#20889#20837#37197#32622#20013#12290
+    InfoFile.UpgradeMsg = #26356#26032#20869#23481#65306#13#10#37325#26500#65292#35299#20915#20887#20313#20195#30721
     InfoFileURL = 'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.inf'
     VersionControl = byNumber
-    VersionDate = '08/27/2013'
+    VersionDate = '08/28/2013'
     VersionDateAutoSet = True
-    VersionNumber = '1.0.0.5'
+    VersionNumber = '1.0.1.1'
     Left = 128
     Top = 24
-  end
-  object dxSkinController1: TdxSkinController
-    SkinName = 'UserSkin'
-    Left = 96
-    Top = 104
   end
 end
