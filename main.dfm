@@ -1,6 +1,6 @@
 object VideoForm: TVideoForm
-  Left = 448
-  Top = 51
+  Left = 436
+  Top = 215
   AutoScroll = False
   Caption = 'QuickScan'
   ClientHeight = 673
@@ -320,13 +320,19 @@ object VideoForm: TVideoForm
     AutoCheck = True
     InfoFile.Files.Strings = (
       'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.exe')
-    InfoFile.UpgradeMsg = #26356#26032#20869#23481#65306#13#10#37325#26500#65292#35299#20915#20887#20313#20195#30721
+    InfoFile.UpgradeMsg = #26356#26032#20869#23481#65306#13#10#22686#21152#36873#25321#37197#32622#25991#20214#21151#33021#12290
     InfoFileURL = 'http://qsupdate.ap01.aws.af.cm/QuickScanDocument.inf'
     VersionControl = byNumber
-    VersionDate = '08/28/2013'
+    VersionDate = '09/02/2013'
     VersionDateAutoSet = True
-    VersionNumber = '1.0.1.1'
+    VersionNumber = '1.0.1.2'
     Left = 128
     Top = 24
+  end
+  object selectConfigFile: TOpenDialog
+    Filter = #37197#32622#25991#20214'(*.ini)|*.ini'
+    InitialDir = '.\config'
+    Left = 104
+    Top = 128
   end
 end

@@ -31,6 +31,7 @@ type
     auAutoUpgrader1: TauAutoUpgrader;
     tvDir: TTreeView;
     Version: TMenuItem;
+    selectConfigFile: TOpenDialog;
 
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -110,6 +111,9 @@ var
   DocTitle :array of TLabel;              //文档的标题
   Docscb :array of TScrollBox;      //文档的扫描按钮容器，可以滚动
   DocBut :array of array of TcxButton;   //定义二维数组，存放button
+
+
+  CurrentConfigFile:string;    //新建项目时选择当前配置文件
 
 
 
@@ -308,7 +312,7 @@ begin
   end;
 
   try
-    ini:=TInifile.Create('./Config/OpenHistory.ini');
+    ini:=TInifile.Create(ExtractFileDir(ParamStr(0))+'\Config\OpenHistory.ini');
     ProjectDir:=ini.ReadString('LastProjectPath','path','');
     ProjectName:=ini.ReadString('LastProjectPath','ProjectName','');
   except
@@ -359,7 +363,7 @@ var
                 ini.writestring('Project','ProjectName',ProjectName);
             end;
 
-          ini:=TInifile.Create('./Config/OpenHistory.ini');
+          ini:=TInifile.Create(ExtractFileDir(ParamStr(0))+'\Config\OpenHistory.ini');
           //写入项目下配置文件，项目名称
           ini.writestring('LastProjectPath','ProjectName',ProjectName);
           ini.writestring('LastProjectPath','path',ProjectDir);
@@ -1023,8 +1027,15 @@ procedure TVideoForm.NewProjectClick(Sender: TObject);
 var
   ini:TInifile;
   p:Integer;
+  configFile:string;
 begin
     //SelectDirectory('选择新建项目保存位置', '', ProjectDir);
+    if(not selectConfigFile.Execute)then
+    begin
+      exit;
+    end;
+    CurrentConfigFile:= selectConfigFile.FileName;
+
     SelectDirectory('选择新建项目保存位置','',ProjectDir);
     ProjectName:=InputBox( '输入项目名称','项目名称','');
     if not DirectoryExists(ProjectDir+'\'+ProjectName) then
@@ -1038,12 +1049,27 @@ begin
            CreateDir(ProjectDir+'/Config');
 
         end;
-        if not FileExists(ProjectDir+'/Config/Default.ini') then
-          CopyFile(pChar('./Config/Default.ini'),pChar(ProjectDir+'/Config/Default.ini'),true);
+
+        if(CurrentConfigFile='') then
+        begin
+            if not FileExists(ProjectDir+'/Config/Default.ini') then
+                CopyFile(pChar('./Config/Default.ini'),pChar(ProjectDir+'/Config/Default.ini'),true);
+        end
+        else
+        begin
+//            configFile:=copy(CurrentConfigFile,(StrScan(PChar(CurrentConfigFile), '\')),length(CurrentConfigFile));
+            //configFile:=StrRScan(PChar(CurrentConfigFile),'\');
+            //configFile:=copy(configFile,2,(length(configFile))-1);
+            if not FileExists(ProjectDir+'/Config/Default.ini') then
+                CopyFile(pChar(CurrentConfigFile),pChar(ProjectDir+'/Config/Default.ini'),true);
+        end;
 
 
 
-    ini:=TInifile.Create('./Config/OpenHistory.ini');
+
+
+
+    ini:=TInifile.Create(ExtractFileDir(ParamStr(0))+'\Config\OpenHistory.ini');
     ini.writestring('LastProjectPath','ProjectName',ProjectName);
 
     NewAndOpenInit;
